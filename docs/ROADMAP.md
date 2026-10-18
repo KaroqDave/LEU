@@ -4,6 +4,8 @@ Build a useful Windows inventory and uninstall workflow before enabling LEU to r
 
 The initial target is Windows 11 x64. Milestone numbers express dependency order rather than delivery dates. The sequence assumes a small team and should be scheduled after the foundation prototype establishes the native integration cost.
 
+M0 now has a working implementation. See [M0 status](M0.md) for completed checks, baseline measurements, and repository and release setup. M1 live inventory has not started.
+
 ## Release sequence
 
 | Milestone | Deliverable | Required before proceeding |

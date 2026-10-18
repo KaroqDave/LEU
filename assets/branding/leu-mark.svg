@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" fill="none">
+  <title>LEU symbol</title>
+  <path d="M18 18c-4 0-7 3-7 7v20c0 4 3 7 7 7h18c4 0 7-3 7-7H25c-4 0-7-3-7-7V18Z" fill="#74cba1"/>
+  <path d="M24 14a4 4 0 0 0-4 4v19c0 4 3 7 7 7h14a4 4 0 0 0 4-4v-1a4 4 0 0 0-4-4h-8a4 4 0 0 1-4-4V18a4 4 0 0 0-4-4h-1Z" fill="#123f32"/>
+  <rect x="37" y="14" width="11" height="11" rx="3.2" fill="#74cba1"/>
+</svg>

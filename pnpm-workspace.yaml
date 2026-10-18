@@ -1,0 +1,6 @@
+nodeLinker: hoisted
+storeDir: .cache/pnpm/store
+cacheDir: .cache/pnpm/cache
+allowBuilds:
+  electron: true
+  esbuild: true

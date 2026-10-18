@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="316" height="96" viewBox="0 0 316 96" fill="none">
+  <title>LEU — Light Electron Uninstaller</title>
+  <g transform="scale(1.5)">
+    <path d="M18 18c-4 0-7 3-7 7v20c0 4 3 7 7 7h18c4 0 7-3 7-7H25c-4 0-7-3-7-7V18Z" fill="#74cba1"/>
+    <path d="M24 14a4 4 0 0 0-4 4v19c0 4 3 7 7 7h14a4 4 0 0 0 4-4v-1a4 4 0 0 0-4-4h-8a4 4 0 0 1-4-4V18a4 4 0 0 0-4-4h-1Z" fill="#f4fff9"/>
+    <rect x="37" y="14" width="11" height="11" rx="3.2" fill="#74cba1"/>
+  </g>
+  <g transform="translate(112 23)" fill="#f4fff9">
+    <path d="M0 0h11v39h28v10H0V0Zm53 0h40v10H64v9h26v10H64v10h30v10H53V0Zm55 0h11v29c0 8 4 12 11 12s11-4 11-12V0h11v30c0 13-8 20-22 20s-22-7-22-20V0Z"/>
+    <rect x="169" y="38" width="11" height="11" rx="3" fill="#74cba1"/>
+  </g>
+</svg>

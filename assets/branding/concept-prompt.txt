@@ -1,0 +1,7 @@
+Use case: logo-brand
+Asset type: polished brand exploration board for LEU, Light Electron Uninstaller, a modern Windows desktop utility.
+Primary request: Create a beautiful, restrained software identity board with a consistent original logo. Use the existing project's forest green #157450, mint #74cba1, deep green-black #142b24, and warm off-white #f5f7f4. The symbol is a bold geometric capital L formed by two stacked rounded L-shaped layers; a small separate rounded square lifts from the upper right, suggesting freeing space and removing an app cleanly. Very simple geometric construction, memorable at small size, confident negative space. No brooms, bins, shields, leaves, atom orbits, sparkles or generic cleanup clipart.
+Style/medium: refined flat vector-like brand design. The desktop app tile may have an extremely subtle emerald tonal gradient, with crisp mint and white geometry, no shiny 3D material.
+Composition: landscape presentation board, generous margin, an oversized dark emerald rounded-square app icon on the left; on the right a crisp LEU wordmark with 'Light Electron Uninstaller' beneath, then a row of three small matching marks showing light background, dark background, and monochrome. Editorial typography, balanced spacing, premium developer tool feel. Keep the SAME symbol in every application.
+Text verbatim: 'LEU', 'Light Electron Uninstaller'. No other words.
+Constraints: finished identity design, original mark, clean geometry, no mockup objects, no watermark.

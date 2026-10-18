@@ -1,0 +1,12 @@
+node_modules
+.webpack
+out
+target
+.tools
+.cache
+pnpm-lock.yaml
+Cargo.lock
+LICENSE
+docs/ARCHITECTURE.md
+docs/ROADMAP.md
+native

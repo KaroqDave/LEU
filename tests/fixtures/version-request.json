@@ -1,0 +1,6 @@
+{
+  "protocolVersion": 1,
+  "id": "contract-fixture-1",
+  "method": "engine.version",
+  "params": {}
+}

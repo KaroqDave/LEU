@@ -1,0 +1,368 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>LEU — Visual identity</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        padding: 52px 64px 40px;
+        background: #f5f7f4;
+        color: #123f32;
+        font-family: 'Segoe UI Variable', 'Segoe UI', sans-serif;
+      }
+      header,
+      footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .eyebrow {
+        font-size: 11px;
+        font-weight: 650;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+      }
+      .edition {
+        color: #708279;
+        font-size: 11px;
+      }
+      h1 {
+        margin: 24px 0 8px;
+        font-size: 44px;
+        line-height: 1.1;
+        letter-spacing: -1.8px;
+        font-weight: 600;
+      }
+      .intro {
+        margin: 0 0 32px;
+        color: #708279;
+        font-size: 14px;
+      }
+      .hero {
+        display: grid;
+        grid-template-columns: 1fr 1.15fr;
+        gap: 20px;
+      }
+      .app-tile {
+        height: 404px;
+        border: 1px solid #e1e8e1;
+        border-radius: 22px;
+        background: #eaf0e9;
+        display: grid;
+        place-items: center;
+        position: relative;
+      }
+      .app-tile img {
+        width: 300px;
+        height: 300px;
+      }
+      .label {
+        font-size: 10px;
+        letter-spacing: 1.4px;
+        font-weight: 600;
+        text-transform: uppercase;
+      }
+      .app-tile .label {
+        position: absolute;
+        bottom: 23px;
+        color: #708279;
+      }
+      .lockups {
+        display: grid;
+        grid-template-rows: 1fr 1fr;
+        gap: 20px;
+      }
+      .lockup {
+        border: 1px solid #e1e8e1;
+        border-radius: 22px;
+        padding: 25px 36px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: flex-start;
+        background: white;
+      }
+      .lockup img {
+        width: 254px;
+        height: auto;
+        margin: -3px 0 3px -13px;
+      }
+      .lockup p {
+        font-size: 12px;
+        letter-spacing: 1px;
+        margin: 0;
+        color: #708279;
+      }
+      .lockup.dark {
+        background: #142b24;
+        border-color: #142b24;
+      }
+      .dark p {
+        color: #a0b8aa;
+      }
+      .bottom {
+        display: grid;
+        grid-template-columns: 1fr 1.15fr;
+        gap: 20px;
+        margin-top: 20px;
+      }
+      .panel {
+        background: white;
+        border: 1px solid #e1e8e1;
+        border-radius: 18px;
+        padding: 23px 26px;
+      }
+      .sizes {
+        height: 73px;
+        display: flex;
+        align-items: center;
+        gap: 20px;
+        margin-top: 15px;
+      }
+      .size {
+        display: flex;
+        align-items: center;
+        flex-direction: column;
+        gap: 6px;
+      }
+      .size span {
+        font-size: 9px;
+        color: #708279;
+      }
+      .swatches {
+        display: flex;
+        gap: 9px;
+        margin-top: 22px;
+      }
+      .swatch {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        color: #708279;
+        font-size: 9px;
+        letter-spacing: 0.5px;
+      }
+      .swatch i {
+        height: 32px;
+        border-radius: 7px;
+        border: 1px solid #00000006;
+        background: var(--color);
+      }
+      .mono {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-top: 14px;
+      }
+      .mono img {
+        width: 132px;
+      }
+      .mono span {
+        font-size: 10px;
+        color: #708279;
+      }
+      .icons-panel {
+        margin-top: 20px;
+        padding: 22px 26px;
+      }
+      .icon-grid {
+        display: grid;
+        grid-template-columns: repeat(11, 1fr);
+        gap: 19px 12px;
+        margin-top: 22px;
+      }
+      .icon {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 8px;
+        color: #157450;
+      }
+      .icon svg {
+        width: 22px;
+        height: 22px;
+      }
+      .icon span {
+        font-size: 9px;
+        color: #708279;
+      }
+      footer {
+        margin-top: 23px;
+        font-size: 10px;
+        color: #708279;
+      }
+      @media (max-width: 800px) {
+        body {
+          padding: 28px;
+        }
+        .hero,
+        .bottom {
+          grid-template-columns: 1fr;
+        }
+        .icon-grid {
+          grid-template-columns: repeat(5, 1fr);
+        }
+        .lockup {
+          min-height: 180px;
+        }
+        .sizes {
+          gap: 14px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <span class="eyebrow">LEU / Visual identity</span
+      ><span class="edition">Light Electron Uninstaller · 01</span>
+    </header>
+    <h1>A little less clutter.</h1>
+    <p class="intro">
+      A clear, calm identity for a lighter desktop. Layered forms. Room to breathe.
+    </p>
+    <section class="hero" aria-label="App icon and wordmarks">
+      <div class="app-tile">
+        <img src="leu-icon.svg" alt="LEU desktop icon" /><span class="label">The lifted layer</span>
+      </div>
+      <div class="lockups">
+        <div class="lockup dark">
+          <img src="leu-logo-dark.svg" alt="LEU logo on a dark surface" />
+          <p>Light Electron Uninstaller</p>
+        </div>
+        <div class="lockup">
+          <img src="leu-logo-light.svg" alt="LEU logo on a light surface" />
+          <p>Light Electron Uninstaller</p>
+        </div>
+      </div>
+    </section>
+    <section class="bottom" aria-label="Icon sizes and palette">
+      <div class="panel">
+        <span class="label">From taskbar to desktop</span>
+        <div class="sizes">
+          <div class="size">
+            <img src="app-icons/leu-16.png" width="16" height="16" alt="16 pixel icon" /><span
+              >16</span
+            >
+          </div>
+          <div class="size">
+            <img src="app-icons/leu-24.png" width="24" height="24" alt="24 pixel icon" /><span
+              >24</span
+            >
+          </div>
+          <div class="size">
+            <img src="app-icons/leu-32.png" width="32" height="32" alt="32 pixel icon" /><span
+              >32</span
+            >
+          </div>
+          <div class="size">
+            <img src="app-icons/leu-48.png" width="48" height="48" alt="48 pixel icon" /><span
+              >48</span
+            >
+          </div>
+          <div class="size">
+            <img src="app-icons/leu-64.png" width="64" height="64" alt="64 pixel icon" /><span
+              >64</span
+            >
+          </div>
+        </div>
+        <div class="mono">
+          <img src="leu-logo-mono.svg" alt="Monochrome LEU logo" /><span
+            >One color. Same character.</span
+          >
+        </div>
+      </div>
+      <div class="panel">
+        <span class="label">A familiar shade of fresh</span>
+        <div class="swatches">
+          <div class="swatch" style="--color: #123f32"><i></i><span>#123F32</span></div>
+          <div class="swatch" style="--color: #157450"><i></i><span>#157450</span></div>
+          <div class="swatch" style="--color: #74cba1"><i></i><span>#74CBA1</span></div>
+          <div class="swatch" style="--color: #f5f7f4"><i></i><span>#F5F7F4</span></div>
+        </div>
+        <div class="mono">
+          <span>Forest · Emerald · Mint · Chalk</span><span>SVG / PNG / ICO</span>
+        </div>
+      </div>
+    </section>
+    <section class="panel icons-panel" aria-label="Interface icon set">
+      <span class="label">22 interface icons / 24px grid / 1.75px stroke</span>
+      <div class="icon-grid">
+        <div class="icon">
+          <svg><use href="ui-icons.svg#apps" /></svg><span>Apps</span>
+        </div>
+        <div class="icon">
+          <svg><use href="ui-icons.svg#activity" /></svg><span>Activity</span>
+        </div>
+        <div class="icon">
+          <svg><use href="ui-icons.svg#settings" /></svg><span>Settings</span>
+        </div>
+        <div class="icon">
+          <svg><use href="ui-icons.svg#search" /></svg><span>Search</span>
+        </div>
+        <div class="icon">
+          <svg><use href="ui-icons.svg#refresh" /></svg><span>Refresh</span>
+        </div>
+        <div class="icon">
+          <svg><use href="ui-icons.svg#arrow" /></svg><span>Arrow</span>
+        </div>
+        <div class="icon">
+          <svg><use href="ui-icons.svg#shield" /></svg><span>Shield</span>
+        </div>
+        <div class="icon">
+          <svg><use href="ui-icons.svg#folder" /></svg><span>Folder</span>
+        </div>
+        <div class="icon">
+          <svg><use href="ui-icons.svg#user" /></svg><span>User</span>
+        </div>
+        <div class="icon">
+          <svg><use href="ui-icons.svg#drive" /></svg><span>Drive</span>
+        </div>
+        <div class="icon">
+          <svg><use href="ui-icons.svg#info" /></svg><span>Info</span>
+        </div>
+        <div class="icon">
+          <svg><use href="ui-icons.svg#chevron" /></svg><span>Chevron</span>
+        </div>
+        <div class="icon">
+          <svg><use href="ui-icons.svg#check" /></svg><span>Check</span>
+        </div>
+        <div class="icon">
+          <svg><use href="ui-icons.svg#box" /></svg><span>Package</span>
+        </div>
+        <div class="icon">
+          <svg><use href="ui-icons.svg#uninstall" /></svg><span>Uninstall</span>
+        </div>
+        <div class="icon">
+          <svg><use href="ui-icons.svg#scan" /></svg><span>Scan</span>
+        </div>
+        <div class="icon">
+          <svg><use href="ui-icons.svg#restore" /></svg><span>Restore</span>
+        </div>
+        <div class="icon">
+          <svg><use href="ui-icons.svg#warning" /></svg><span>Warning</span>
+        </div>
+        <div class="icon">
+          <svg><use href="ui-icons.svg#close" /></svg><span>Close</span>
+        </div>
+        <div class="icon">
+          <svg><use href="ui-icons.svg#external" /></svg><span>External</span>
+        </div>
+        <div class="icon">
+          <svg><use href="ui-icons.svg#download" /></svg><span>Download</span>
+        </div>
+        <div class="icon">
+          <svg><use href="ui-icons.svg#lock" /></svg><span>Lock</span>
+        </div>
+      </div>
+    </section>
+    <footer>
+      <span>Built in the open. Designed to stay local.</span><span>LEU · Brand assets</span>
+    </footer>
+  </body>
+</html>

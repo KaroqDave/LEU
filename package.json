@@ -1,0 +1,59 @@
+{
+  "name": "leu",
+  "productName": "LEU",
+  "version": "0.1.0",
+  "description": "Light Electron Uninstaller — a clear view of your Windows software.",
+  "main": ".webpack/main/index.cjs",
+  "private": true,
+  "license": "MIT",
+  "author": "LEU contributors",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/KaroqDave/LEU.git"
+  },
+  "bugs": {
+    "url": "https://github.com/KaroqDave/LEU/issues"
+  },
+  "homepage": "https://github.com/KaroqDave/LEU#readme",
+  "packageManager": "pnpm@11.25.0",
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "scripts": {
+    "start": "node scripts/forge.mjs start",
+    "package": "node scripts/forge.mjs package",
+    "make": "node scripts/forge.mjs make",
+    "icons:build": "node scripts/branding.cjs",
+    "build:native": "node scripts/native.mjs build",
+    "test:native": "node scripts/native.mjs test",
+    "lint:native": "node scripts/native.mjs lint",
+    "typecheck": "tsc --noEmit",
+    "test": "tsx --test tests/*.test.ts",
+    "smoke": "node scripts/smoke.mjs",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "check": "pnpm typecheck && pnpm test && pnpm test:native && pnpm lint:native && pnpm format:check"
+  },
+  "devDependencies": {
+    "ajv": "^8.17.1",
+    "@electron-forge/cli": "8.0.1",
+    "@electron-forge/maker-zip": "8.0.1",
+    "@electron-forge/plugin-webpack": "8.0.1",
+    "@electron-forge/plugin-fuses": "8.0.1",
+    "@electron/fuses": "^2.0.0",
+    "@playwright/test": "^1.56.0",
+    "@types/node": "^24.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "css-loader": "^7.1.2",
+    "electron": "44.9.0",
+    "mini-css-extract-plugin": "^2.9.4",
+    "prettier": "^3.6.2",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "ts-loader": "9.6.2",
+    "tsx": "^4.20.0",
+    "typescript": "5.9.3",
+    "webpack": "5.112.0"
+  }
+}

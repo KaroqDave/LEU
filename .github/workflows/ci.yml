@@ -1,0 +1,33 @@
+name: Windows checks
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  windows:
+    runs-on: windows-2025
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.25.0
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+      - name: Install pinned Rust toolchain
+        run: rustup show
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Check sources and protocol behavior
+        run: pnpm check
+      - name: Package Windows app and helper
+        run: pnpm package
+      - name: Verify packaged application
+        run: pnpm smoke

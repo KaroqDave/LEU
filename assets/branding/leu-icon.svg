@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 64 64" fill="none">
+  <title>LEU — Light Electron Uninstaller</title>
+  <defs>
+    <linearGradient id="tile" x1="8" y1="4" x2="54" y2="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#176349"/>
+      <stop offset="1" stop-color="#0b2e26"/>
+    </linearGradient>
+    <linearGradient id="mint" x1="12" y1="18" x2="44" y2="53" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#8aebbd"/>
+      <stop offset="1" stop-color="#58c99b"/>
+    </linearGradient>
+  </defs>
+  <rect x="2" y="2" width="60" height="60" rx="14" fill="url(#tile)"/>
+  <rect x="2.5" y="2.5" width="59" height="59" rx="13.5" stroke="#ffffff" stroke-opacity=".08"/>
+  <path d="M18 18c-4 0-7 3-7 7v20c0 4 3 7 7 7h18c4 0 7-3 7-7H25c-4 0-7-3-7-7V18Z" fill="url(#mint)"/>
+  <path d="M24 14a4 4 0 0 0-4 4v19c0 4 3 7 7 7h14a4 4 0 0 0 4-4v-1a4 4 0 0 0-4-4h-8a4 4 0 0 1-4-4V18a4 4 0 0 0-4-4h-1Z" fill="#f4fff9"/>
+  <rect x="37" y="14" width="11" height="11" rx="3.2" fill="url(#mint)"/>
+</svg>
