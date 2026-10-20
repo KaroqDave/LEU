@@ -1,0 +1,57 @@
+name: Bug report
+description: Report a reproducible problem with LEU.
+title: '[Bug]: '
+labels: ['bug']
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Search [existing issues](https://github.com/KaroqDave/LEU/issues) before reporting a bug.
+        LEU is in early development: sample inventory is expected, and real discovery, uninstall, and cleanup are not implemented yet.
+        Report security vulnerabilities [privately](https://github.com/KaroqDave/LEU/security/advisories/new).
+  - type: input
+    id: revision
+    attributes:
+      label: LEU version or commit
+      description: Include the commit SHA for a source build so we can identify the code you tested.
+      placeholder: 'For example: v0.1.0, commit 874a682'
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Windows version and architecture
+      description: Include your Windows build number if available. The current target is Windows 11 x64.
+      placeholder: 'For example: Windows 11 25H2, x64'
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Include how you started LEU and the actions that trigger the problem.
+      placeholder: |
+        1. Start LEU with...
+        2. Open...
+        3. Observe...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      description: What should happen?
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      description: What happened instead? Include the exact error message if available.
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Logs, screenshots, or other context
+      description: Optional. Remove personal paths, usernames, credentials, and other private information before sharing.

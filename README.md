@@ -11,7 +11,13 @@
 
 [**Website**](https://getleu.app) · [Documentation](https://getleu.app/docs) · [Roadmap](docs/ROADMAP.md)
 
+**Early development · Windows 11 x64 · No public installer yet**
+
 LEU is an open source Windows uninstaller project with a modern Electron interface. It will help people understand their installed software, run a program's own uninstaller, and review the files and settings left behind.
+
+![LEU's dark Installed apps screen showing sample inventory, search, and application details](docs/images/installed-apps-dark.png)
+
+_Development preview with sample data. Real Windows discovery, uninstall, and cleanup are not available yet. [Screenshot source and attribution](docs/images/README.md)._
 
 The central product principle is **explain every cleanup action before making it**. A useful result tells the user what LEU found, why it belongs to the selected program, and what keeping or removing it means.
 

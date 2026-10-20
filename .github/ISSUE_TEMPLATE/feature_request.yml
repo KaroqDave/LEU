@@ -1,0 +1,34 @@
+name: Feature request
+description: Suggest an improvement to LEU.
+title: '[Feature]: '
+labels: ['enhancement']
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Check [existing issues](https://github.com/KaroqDave/LEU/issues) and the [roadmap](https://github.com/KaroqDave/LEU/blob/main/docs/ROADMAP.md) first.
+        If your idea is already planned, explain the use case or detail that is missing.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or use case
+      description: What are you trying to do, and what makes it difficult today?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed improvement
+      description: Describe the behavior you would like and how it would help.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Optional. Describe other approaches or workarounds you have considered.
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Optional. Add examples or sketches. For uninstall or cleanup ideas, describe what should be preserved and how recovery should work.
