@@ -46,6 +46,8 @@ Individual commands are `pnpm typecheck`, `pnpm test`, `pnpm test:native`, `pnpm
 
 TypeScript tests cover message validation, framing and size limits, request multiplexing, helper startup and failure behavior, resource paths, and sample search behavior. Rust tests cover the engine's framing, request and response limits, request validation, method allowlist, version mismatch, and EOF behavior. Keep the shared request fixture compatible with both implementations.
 
+If a check fails with `os error 4551` ("An application control policy has blocked this file"), Windows Smart App Control blocked a newly built unsigned binary. Windows keeps blocking that exact file. Rebuild it, for example with `cargo clean -p leu-engine` followed by the failing command, or rely on the CI run. Do not disable security features to work around it.
+
 ## Boundaries to preserve
 
 The renderer calls named methods on `window.leu`. Add or change the shared bridge type when an action is introduced; do not expose raw IPC, shell commands, or native filesystem handles. Validate the sending window and frame in main process handlers.

@@ -31,6 +31,8 @@ Open work from the October 2026 project review. Milestone scope and acceptance c
 - [ ] Set the `GrantFileProtocolExtraPrivileges` fuse to `false`. The app uses the `leu://` protocol, not `file://`.
 - [ ] The smoke test's helper-exit check (`process.kill(pid, 0)`) can be fooled by PID reuse. Consider checking process creation time as well.
 
+- [ ] Plan code signing for both `LEU.exe` and `leu-engine.exe` as a release requirement. Smart App Control (on by default for many Windows 11 installations) blocks unsigned executables without reputation. On 2026-10-21 it intermittently blocked freshly built development binaries on the main development machine (os error 4551).
+
 ## Performance
 
 - [ ] Measure startup without Chromium remote debugging attached (for example, timestamps logged by the app). The 5.58 s M0 figure includes CDP attachment and first-launch Defender scanning of an unsigned executable. On 2026-10-21 the smoke test measured 15.5 s on the first launch of a fresh build, then 0.25 s and 0.24 s on the next two launches, so first-launch scanning dominates. Measure cold and warm launches separately.
