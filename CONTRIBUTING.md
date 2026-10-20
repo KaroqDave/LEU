@@ -50,9 +50,9 @@ TypeScript tests cover message validation, framing and size limits, request mult
 
 The renderer calls named methods on `window.leu`. Add or change the shared bridge type when an action is introduced; do not expose raw IPC, shell commands, or native filesystem handles. Validate the sending window and frame in main process handlers.
 
-The helper uses bounded newline delimited JSON on private stdin and stdout: 16 KiB per request and 8 MiB per response. Reserve stdout for protocol frames and stderr for diagnostics. Version requests are the only supported native action in M0.
+The helper uses bounded newline delimited JSON on private stdin and stdout: 16 KiB per request and 8 MiB per response. Reserve stdout for protocol frames and stderr for diagnostics. Version requests are the only supported native action in M0. The demo provider is explicit and independent of the native engine; a helper failure must never cause fabricated live inventory.
 
-To add an engine method, change all three places together: the parameter and result schemas in `src/contracts/methods.json`, the `EngineMethods` type in `src/contracts/protocol.ts`, and the `METHODS` list and `Method` enum in `native/engine/src/lib.rs`. Then call it through `EngineClient.request`. See the helper protocol section of the [architecture](docs/ARCHITECTURE.md). The demo provider is explicit and independent of the native engine; a helper failure must never cause fabricated live inventory.
+The Rust engine is the single source of the protocol contract. To add an engine method, declare it in the `engine_methods!` list in `native/engine/src/lib.rs` with its parameter and result types (deriving `JsonSchema` under the `schema` feature), and handle it in `handle_frame`. Then run `pnpm contracts`, which regenerates `src/contracts/contract.json` and `src/contracts/generated.ts`, and call the method through `EngineClient.request`. Never edit the generated files by hand. `pnpm check` and CI fail when they differ from the engine. See the helper protocol section of the [architecture](docs/ARCHITECTURE.md).
 
 Keep destructive integration tests inside disposable Windows VMs once uninstall and cleanup operations exist. Never use a contributor's installed applications as deletion fixtures.
 

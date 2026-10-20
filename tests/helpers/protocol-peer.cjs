@@ -3,7 +3,7 @@
 const readline = require('node:readline');
 
 const mode = process.argv[2];
-const MAX_RESPONSE_BYTES = 8 * 1024 * 1024;
+const MAX_RESPONSE_BYTES = require('../../src/contracts/contract.json').limits.responseBytes;
 const version = { engineVersion: '0.1.0', platform: 'windows', arch: 'x86_64' };
 const ok = (request, result = version) => ({
   protocolVersion: mode === 'mismatch' ? 2 : 1,

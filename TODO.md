@@ -7,7 +7,7 @@ Open work from the October 2026 project review. Milestone scope and acceptance c
 - [x] **Turn the engine client into a request/response client.** `src/main/engine-client.ts` only performs the handshake; any frame after `ready` is treated as `INVALID_RESPONSE`. Add a `request(method, params)` API, a pending map keyed by request id, a timeout per request, and rejection of all pending requests when the helper exits. Rebuild the handshake on top of it.
 - [x] **Split the frame size limits.** `MAX_FRAME_BYTES` (16 KiB) applies to both directions, and a real inventory of ~300 programs will exceed it. Keep a small request limit and add a separate, larger response limit (for example 8 MiB) on both the TypeScript and Rust sides, with tests.
 - [x] **Type each engine method.** `native/engine/src/lib.rs` hard-codes `params: EmptyParams` and a single `engine.version` method. Replace it with a serde-tagged method enum so each method has `deny_unknown_fields` params, keeping `UNKNOWN_METHOD` and `INVALID_REQUEST` behavior.
-- [ ] **Single source of truth for the protocol.** The JSON schemas, TypeScript types, and Rust structs are maintained by hand, and the error code list is already duplicated. Generate the schema from Rust (for example `schemars`) and the TypeScript types from the schema, and check for drift in CI.
+- [x] **Single source of truth for the protocol.** The JSON schemas, TypeScript types, and Rust structs are maintained by hand, and the error code list is already duplicated. Generate the schema from Rust (for example `schemars`) and the TypeScript types from the schema, and check for drift in CI.
 
 ## M1 preparation
 

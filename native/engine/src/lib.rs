@@ -1,15 +1,64 @@
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use std::io::{self, BufRead, Read, Write};
+
+#[cfg(feature = "schema")]
+mod contract;
+#[cfg(feature = "schema")]
+pub use contract::contract;
 
 pub const PROTOCOL_VERSION: u64 = 1;
 /// Largest request line, including its newline. Requests carry identifiers, never bulk data.
 pub const MAX_REQUEST_BYTES: usize = 16 * 1024;
 /// Largest response line, including its newline. Inventory results need far more than a request.
 pub const MAX_RESPONSE_BYTES: usize = 8 * 1024 * 1024;
+const MAX_ID_CHARS: usize = 64;
+const MAX_METHOD_CHARS: usize = 64;
+const MAX_ERROR_MESSAGE_CHARS: usize = 256;
 
-/// Every method the engine accepts. Dispatch rejects anything else before parsing params.
-const METHODS: &[&str] = &["engine.version"];
+#[derive(Clone, Copy, Debug, PartialEq, Serialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum ErrorCode {
+    InvalidRequest,
+    ProtocolMismatch,
+    UnknownMethod,
+    FrameTooLarge,
+    ResponseTooLarge,
+}
+
+/// Declares each engine method once: wire name, dispatch variant, parameters, and result. It
+/// generates the dispatch enum, the method allowlist, and the method schemas exported to the
+/// TypeScript contract, so these cannot drift apart. `handle_frame` must match every variant.
+macro_rules! engine_methods {
+    ($($name:literal => $variant:ident($params:ty) -> $result:ty;)+) => {
+        #[derive(Deserialize)]
+        #[serde(tag = "method", content = "params", deny_unknown_fields)]
+        enum Method {
+            $(#[serde(rename = $name)] $variant($params),)+
+        }
+
+        /// Dispatch rejects anything else before parsing params.
+        const METHODS: &[&str] = &[$($name),+];
+
+        #[cfg(feature = "schema")]
+        fn method_schemas(
+            generator: &mut schemars::SchemaGenerator,
+        ) -> serde_json::Map<String, Value> {
+            let mut methods = serde_json::Map::new();
+            $(methods.insert($name.to_owned(), json!({
+                "typeName": stringify!($variant),
+                "params": generator.subschema_for::<$params>(),
+                "result": generator.subschema_for::<$result>(),
+            }));)+
+            methods
+        }
+    };
+}
+
+engine_methods! {
+    "engine.version" => EngineVersion(EmptyParams) -> EngineVersionResult;
+}
 
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -22,17 +71,32 @@ struct Envelope {
 }
 
 #[derive(Deserialize)]
-#[serde(tag = "method", content = "params", deny_unknown_fields)]
-enum Method {
-    #[serde(rename = "engine.version")]
-    EngineVersion(EmptyParams),
-}
-
-#[derive(Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 struct EmptyParams {}
 
-fn failure(id: Value, code: &str, message: &str) -> Value {
+#[derive(Serialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct EngineVersionResult {
+    #[cfg_attr(feature = "schema", schemars(length(min = 1, max = 64)))]
+    engine_version: String,
+    #[cfg_attr(feature = "schema", schemars(length(min = 1, max = 32)))]
+    platform: String,
+    #[cfg_attr(feature = "schema", schemars(length(min = 1, max = 32)))]
+    arch: String,
+}
+
+fn engine_version(_: EmptyParams) -> EngineVersionResult {
+    EngineVersionResult {
+        engine_version: env!("CARGO_PKG_VERSION").to_owned(),
+        platform: std::env::consts::OS.to_owned(),
+        arch: std::env::consts::ARCH.to_owned(),
+    }
+}
+
+fn failure(id: Value, code: ErrorCode, message: &str) -> Value {
+    debug_assert!(message.chars().count() <= MAX_ERROR_MESSAGE_CHARS);
     json!({
         "protocolVersion": PROTOCOL_VERSION,
         "id": id,
@@ -41,7 +105,7 @@ fn failure(id: Value, code: &str, message: &str) -> Value {
     })
 }
 
-fn success(id: Value, result: Value) -> Value {
+fn success(id: Value, result: impl Serialize) -> Value {
     json!({
         "protocolVersion": PROTOCOL_VERSION,
         "id": id,
@@ -54,39 +118,44 @@ pub fn handle_frame(bytes: &[u8]) -> Value {
     let envelope = match serde_json::from_slice::<Envelope>(bytes) {
         Ok(envelope)
             if !envelope.id.is_empty()
-                && envelope.id.chars().count() <= 64
+                && envelope.id.chars().count() <= MAX_ID_CHARS
                 && !envelope.method.is_empty()
-                && envelope.method.chars().count() <= 64
+                && envelope.method.chars().count() <= MAX_METHOD_CHARS
                 && envelope.params.is_object() =>
         {
             envelope
         }
-        _ => return failure(Value::Null, "INVALID_REQUEST", "Invalid request envelope."),
+        _ => {
+            return failure(
+                Value::Null,
+                ErrorCode::InvalidRequest,
+                "Invalid request envelope.",
+            );
+        }
     };
 
     let id = Value::String(envelope.id);
     if envelope.protocol_version != PROTOCOL_VERSION {
-        return failure(id, "PROTOCOL_MISMATCH", "Unsupported protocol version.");
+        return failure(
+            id,
+            ErrorCode::ProtocolMismatch,
+            "Unsupported protocol version.",
+        );
     }
     if !METHODS.contains(&envelope.method.as_str()) {
-        return failure(id, "UNKNOWN_METHOD", "Unsupported engine method.");
+        return failure(id, ErrorCode::UnknownMethod, "Unsupported engine method.");
     }
     let method = match serde_json::from_value::<Method>(
         json!({ "method": envelope.method, "params": envelope.params }),
     ) {
         Ok(method) => method,
-        Err(_) => return failure(id, "INVALID_REQUEST", "Invalid method parameters."),
+        Err(_) => {
+            return failure(id, ErrorCode::InvalidRequest, "Invalid method parameters.");
+        }
     };
 
     match method {
-        Method::EngineVersion(EmptyParams {}) => success(
-            id,
-            json!({
-                "engineVersion": env!("CARGO_PKG_VERSION"),
-                "platform": std::env::consts::OS,
-                "arch": std::env::consts::ARCH
-            }),
-        ),
+        Method::EngineVersion(params) => success(id, engine_version(params)),
     }
 }
 
@@ -96,7 +165,7 @@ fn write_response(output: &mut impl Write, response: &Value, limit: usize) -> io
     if line.len() + 1 > limit {
         line = serde_json::to_vec(&failure(
             response["id"].clone(),
-            "RESPONSE_TOO_LARGE",
+            ErrorCode::ResponseTooLarge,
             "Response exceeds the protocol limit.",
         ))?;
     }
@@ -119,8 +188,8 @@ pub fn serve(mut input: impl BufRead, mut output: impl Write) -> io::Result<()> 
         let response = if oversized {
             failure(
                 Value::Null,
-                "FRAME_TOO_LARGE",
-                "Request exceeds 16384 bytes.",
+                ErrorCode::FrameTooLarge,
+                &format!("Request exceeds {MAX_REQUEST_BYTES} bytes."),
             )
         } else {
             handle_frame(&frame)
@@ -234,19 +303,6 @@ mod tests {
         write_response(&mut output, &response, size).unwrap();
         let value: Value = serde_json::from_slice(&output).unwrap();
         assert_eq!(value["error"]["code"], "RESPONSE_TOO_LARGE");
-    }
-
-    #[test]
-    fn every_listed_method_has_a_variant() {
-        // An allowlisted name without a matching variant would surface as a parameter error.
-        for method in METHODS {
-            let input = json!({ "method": method, "params": {} });
-            let error = serde_json::from_value::<Method>(input).err();
-            assert!(
-                error.is_none_or(|error| !error.to_string().contains("unknown variant")),
-                "{method}"
-            );
-        }
     }
 
     #[test]

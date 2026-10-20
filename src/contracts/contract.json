@@ -1,0 +1,88 @@
+{
+  "errorCode": {
+    "enum": [
+      "INVALID_REQUEST",
+      "PROTOCOL_MISMATCH",
+      "UNKNOWN_METHOD",
+      "FRAME_TOO_LARGE",
+      "RESPONSE_TOO_LARGE"
+    ],
+    "type": "string"
+  },
+  "limits": { "requestBytes": 16384, "responseBytes": 8388608 },
+  "methods": {
+    "engine.version": {
+      "params": { "additionalProperties": false, "type": "object" },
+      "result": {
+        "additionalProperties": false,
+        "properties": {
+          "arch": { "maxLength": 32, "minLength": 1, "type": "string" },
+          "engineVersion": { "maxLength": 64, "minLength": 1, "type": "string" },
+          "platform": { "maxLength": 32, "minLength": 1, "type": "string" }
+        },
+        "required": ["engineVersion", "platform", "arch"],
+        "type": "object"
+      },
+      "typeName": "EngineVersion"
+    }
+  },
+  "protocolVersion": 1,
+  "request": {
+    "additionalProperties": false,
+    "properties": {
+      "id": { "maxLength": 64, "minLength": 1, "type": "string" },
+      "method": { "maxLength": 64, "minLength": 1, "type": "string" },
+      "params": { "type": "object" },
+      "protocolVersion": { "minimum": 1, "type": "integer" }
+    },
+    "required": ["protocolVersion", "id", "method", "params"],
+    "title": "EngineRequest",
+    "type": "object"
+  },
+  "response": {
+    "oneOf": [
+      {
+        "additionalProperties": false,
+        "properties": {
+          "id": { "maxLength": 64, "minLength": 1, "type": "string" },
+          "ok": { "const": true },
+          "protocolVersion": { "minimum": 1, "type": "integer" },
+          "result": { "type": "object" }
+        },
+        "required": ["protocolVersion", "id", "ok", "result"],
+        "title": "EngineSuccessResponse",
+        "type": "object"
+      },
+      {
+        "additionalProperties": false,
+        "properties": {
+          "error": {
+            "additionalProperties": false,
+            "properties": {
+              "code": {
+                "enum": [
+                  "INVALID_REQUEST",
+                  "PROTOCOL_MISMATCH",
+                  "UNKNOWN_METHOD",
+                  "FRAME_TOO_LARGE",
+                  "RESPONSE_TOO_LARGE"
+                ],
+                "type": "string"
+              },
+              "message": { "maxLength": 256, "type": "string" }
+            },
+            "required": ["code", "message"],
+            "type": "object"
+          },
+          "id": { "maxLength": 64, "type": ["string", "null"] },
+          "ok": { "const": false },
+          "protocolVersion": { "minimum": 1, "type": "integer" }
+        },
+        "required": ["protocolVersion", "id", "ok", "error"],
+        "title": "EngineFailureResponse",
+        "type": "object"
+      }
+    ],
+    "title": "EngineResponse"
+  }
+}

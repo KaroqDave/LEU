@@ -33,22 +33,38 @@ export async function run(command, args, options = {}) {
   });
 }
 
-export async function native(action) {
+export function cargo() {
   const env = cargoEnvironment();
-  const cargo =
+  const command =
     env.CARGO_HOME && existsSync(path.join(env.CARGO_HOME, 'bin', 'cargo.exe'))
       ? path.join(env.CARGO_HOME, 'bin', 'cargo.exe')
       : 'cargo';
+  return { command, env };
+}
+
+export async function native(action) {
+  const { command, env } = cargo();
+  // Tests and lints include the contract generator; the shipped helper is built without it.
   const commands = {
     build: [['build', '--release', '--locked', '--target', target]],
-    test: [['test', '--locked', '--target', target]],
+    test: [['test', '--locked', '--target', target, '--all-features']],
     lint: [
       ['fmt', '--all', '--check'],
-      ['clippy', '--locked', '--target', target, '--all-targets', '--', '-D', 'warnings'],
+      [
+        'clippy',
+        '--locked',
+        '--target',
+        target,
+        '--all-targets',
+        '--all-features',
+        '--',
+        '-D',
+        'warnings',
+      ],
     ],
   };
   if (!Object.hasOwn(commands, action)) throw new Error(`Unknown native task: ${action}`);
-  for (const args of commands[action]) await run(cargo, args, { env });
+  for (const args of commands[action]) await run(command, args, { env });
 }
 
 if (path.resolve(process.argv[1] ?? '') === fileURLToPath(import.meta.url)) {
