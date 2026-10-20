@@ -7,6 +7,9 @@
 
 [![Windows checks](https://github.com/KaroqDave/LEU/actions/workflows/ci.yml/badge.svg)](https://github.com/KaroqDave/LEU/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![Website](https://img.shields.io/badge/Website-getleu.app-5865F2)](https://getleu.app)
+
+[**Website**](https://getleu.app) · [Documentation](https://getleu.app/docs) · [Roadmap](docs/ROADMAP.md)
 
 LEU is an open source Windows uninstaller project with a modern Electron interface. It will help people understand their installed software, run a program's own uninstaller, and review the files and settings left behind.
 
