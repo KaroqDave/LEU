@@ -47,5 +47,5 @@ Open work from the October 2026 project review. Milestone scope and acceptance c
 
 - [x] Use the operator's real full name in the Impressum and copyright notices (§5 DDG).
 - [x] Remove the Cloudflare account subdomain link from the website README.
-- [ ] Update the screenshot credit in `docs/images/README.md` (added on GitHub in 8029831) from the old operator name to David Fuhrmann.
+- [x] Update the screenshot credit in `docs/images/README.md` (added on GitHub in 8029831) from the old operator name to David Fuhrmann.
 - [ ] Decide whether to disable the `workers.dev` route (`"workers_dev": false` in `wrangler.jsonc`). The site is still reachable there, and the hostname contains the Cloudflare account name. Check the effect on Preview URLs first.

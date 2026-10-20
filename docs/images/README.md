@@ -5,7 +5,7 @@
 website repository's `src/assets/installed-apps-dark.png`. It shows the M0 foundation
 with sample data, not a public release or live Windows inventory.
 
-LEU website screenshot © 2026 Davey Jones, [LEU project](https://getleu.app).
+LEU website screenshot © 2026 David Fuhrmann, [LEU project](https://getleu.app).
 The project's rights in the capture are licensed under
 [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/); see the included
 [license text](CC-BY-4.0.txt) and the website's
