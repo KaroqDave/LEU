@@ -1,15 +1,54 @@
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import type { EngineErrorCode, EngineStatus } from '../contracts/bridge';
-import { isEngineResponse, MAX_FRAME_BYTES, PROTOCOL_VERSION } from '../contracts/protocol';
+import {
+  isEngineRequest,
+  isEngineResponse,
+  isEngineResult,
+  MAX_REQUEST_BYTES,
+  MAX_RESPONSE_BYTES,
+  PROTOCOL_VERSION,
+  type EngineMethod,
+  type EngineParams,
+  type EngineRemoteErrorCode,
+  type EngineResult,
+} from '../contracts/protocol';
+import { encodeFrame, FrameDecoder, FrameTooLargeError } from './framing';
 
+export class EngineError extends Error {
+  constructor(
+    readonly code: EngineErrorCode | EngineRemoteErrorCode,
+    message: string,
+  ) {
+    super(message);
+    this.name = 'EngineError';
+  }
+}
+
+interface PendingRequest {
+  method: EngineMethod;
+  resolve: (result: unknown) => void;
+  reject: (error: EngineError) => void;
+  timer: NodeJS.Timeout;
+}
+
+const stopped: Extract<EngineStatus, { state: 'error' }> = {
+  state: 'error',
+  code: 'ENGINE_EXITED',
+  message: 'The Windows helper was stopped.',
+};
+
+/**
+ * Owns one helper process and multiplexes requests over its stdio by request id. A transport
+ * fault, a contract violation, or a missed deadline ends the connection and rejects every pending
+ * request, because the stream can no longer be trusted. An error response rejects only its own
+ * request.
+ */
 export class EngineClient {
   private child?: ChildProcessWithoutNullStreams;
   private handshake?: Promise<EngineStatus>;
-  private settle?: (status: EngineStatus) => void;
-  private timer?: NodeJS.Timeout;
-  private buffer = Buffer.alloc(0);
-  private requestId = '';
+  private readonly decoder = new FrameDecoder(MAX_RESPONSE_BYTES);
+  private readonly pending = new Map<string, PendingRequest>();
   private status?: EngineStatus;
   private restarting?: Promise<EngineStatus>;
 
@@ -22,11 +61,24 @@ export class EngineClient {
 
   async getStatus(): Promise<EngineStatus> {
     if (this.status) return this.status;
-    if (this.handshake) return this.handshake;
-    this.handshake = new Promise<EngineStatus>((resolve) => {
-      this.settle = resolve;
-    });
-    this.requestId = randomUUID();
+    this.handshake ??= this.connect();
+    return this.handshake;
+  }
+
+  /** Sends one request once the handshake has succeeded. Rejects with an EngineError. */
+  async request<M extends EngineMethod>(
+    method: M,
+    params: EngineParams<M>,
+    timeoutMs = this.timeoutMs,
+  ): Promise<EngineResult<M>> {
+    const status = await this.getStatus();
+    if (status.state === 'error') throw new EngineError(status.code, status.message);
+    if (!this.child) throw new EngineError(stopped.code, stopped.message);
+    return this.send(this.child, method, params, timeoutMs);
+  }
+
+  private connect(): Promise<EngineStatus> {
+    this.decoder.reset();
     const child = spawn(this.executable, this.args, {
       stdio: ['pipe', 'pipe', 'pipe'],
       shell: false,
@@ -53,48 +105,75 @@ export class EngineClient {
     child.stdin.on('error', () => {
       if (this.child === child) this.fail('ENGINE_EXITED', 'The Windows helper connection closed.');
     });
-    this.timer = setTimeout(
-      () =>
-        this.fail(
-          'TIMEOUT',
-          `The Windows helper did not respond within ${this.timeoutMs / 1000} seconds.`,
-        ),
-      this.timeoutMs,
+    return this.send(child, 'engine.version', {}, this.timeoutMs).then(
+      (result) => {
+        if (this.child === child && !this.status)
+          this.setStatus({ state: 'ready', protocolVersion: PROTOCOL_VERSION, ...result });
+        return this.status ?? stopped;
+      },
+      () => {
+        if (this.child === child)
+          this.fail('INVALID_RESPONSE', 'The Windows helper rejected the version request.');
+        return this.status ?? stopped;
+      },
     );
-    child.stdin.write(
-      JSON.stringify({
-        protocolVersion: PROTOCOL_VERSION,
-        id: this.requestId,
-        method: 'engine.version',
-        params: {},
-      }) + '\n',
-    );
-    return this.handshake;
+  }
+
+  private send<M extends EngineMethod>(
+    child: ChildProcessWithoutNullStreams,
+    method: M,
+    params: EngineParams<M>,
+    timeoutMs: number,
+  ): Promise<EngineResult<M>> {
+    const request = { protocolVersion: PROTOCOL_VERSION, id: randomUUID(), method, params };
+    const frame = isEngineRequest(request) ? encodeFrame(request, MAX_REQUEST_BYTES) : undefined;
+    if (!frame)
+      return Promise.reject(
+        new EngineError('INVALID_REQUEST', 'The engine request is invalid or too large.'),
+      );
+    return new Promise<EngineResult<M>>((resolve, reject) => {
+      const timer = setTimeout(
+        () =>
+          this.fail(
+            'TIMEOUT',
+            `The Windows helper did not respond within ${timeoutMs / 1000} seconds.`,
+          ),
+        timeoutMs,
+      );
+      this.pending.set(request.id, {
+        method,
+        resolve: resolve as (result: unknown) => void,
+        reject,
+        timer,
+      });
+      child.stdin.write(frame);
+    });
   }
 
   private receive(chunk: Buffer): void {
-    this.buffer = Buffer.concat([this.buffer, chunk]);
-    const newline = this.buffer.indexOf(10);
-    if ((newline < 0 && this.buffer.length > MAX_FRAME_BYTES) || newline + 1 > MAX_FRAME_BYTES) {
+    let frames: Buffer[];
+    try {
+      frames = this.decoder.push(chunk);
+    } catch (error) {
+      if (!(error instanceof FrameTooLargeError)) throw error;
       this.fail('INVALID_RESPONSE', 'The Windows helper sent an oversized response.');
       return;
     }
-    if (newline < 0) return;
-    if (this.status?.state === 'ready' || this.buffer.length !== newline + 1) {
-      this.fail('INVALID_RESPONSE', 'The Windows helper sent an unexpected response.');
-      return;
+    for (const frame of frames) {
+      if (this.status?.state === 'error') return;
+      this.handleFrame(frame);
     }
+  }
+
+  private handleFrame(frame: Buffer): void {
     let response: unknown;
     try {
-      response = JSON.parse(
-        new TextDecoder('utf-8', { fatal: true }).decode(this.buffer.subarray(0, newline)),
-      );
+      response = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(frame));
     } catch {
       this.fail('INVALID_RESPONSE', 'The Windows helper sent invalid JSON.');
       return;
     }
-    this.buffer = Buffer.alloc(0);
-    if (!isEngineResponse(response) || response.id !== this.requestId) {
+    if (!isEngineResponse(response)) {
       this.fail(
         'INVALID_RESPONSE',
         'The Windows helper response did not match the request contract.',
@@ -111,41 +190,51 @@ export class EngineClient {
       );
       return;
     }
-    if (!response.ok) {
-      this.fail('INVALID_RESPONSE', 'The Windows helper rejected the version request.');
+    const pending = response.id === null ? undefined : this.pending.get(response.id);
+    if (!pending || response.id === null) {
+      this.fail('INVALID_RESPONSE', 'The Windows helper sent an unexpected response.');
       return;
     }
-    this.complete({
-      state: 'ready',
-      protocolVersion: response.protocolVersion,
-      ...response.result,
-    });
+    if (response.ok && !isEngineResult(pending.method, response.result)) {
+      this.fail(
+        'INVALID_RESPONSE',
+        'The Windows helper response did not match the request contract.',
+      );
+      return;
+    }
+    clearTimeout(pending.timer);
+    this.pending.delete(response.id);
+    if (response.ok) pending.resolve(response.result);
+    else pending.reject(new EngineError(response.error.code, response.error.message));
   }
 
-  private complete(status: EngineStatus): void {
-    clearTimeout(this.timer);
+  private setStatus(status: EngineStatus): void {
     this.status = status;
     this.onStatus?.(status);
-    this.settle?.(status);
-    this.settle = undefined;
+  }
+
+  private rejectPending(code: EngineErrorCode, message: string): void {
+    const requests = [...this.pending.values()];
+    this.pending.clear();
+    for (const request of requests) {
+      clearTimeout(request.timer);
+      request.reject(new EngineError(code, message));
+    }
   }
 
   private fail(code: EngineErrorCode, message: string): void {
     if (this.status?.state === 'error') return;
-    this.complete({ state: 'error', code, message });
+    this.setStatus({ state: 'error', code, message });
+    this.rejectPending(code, message);
     this.child?.kill();
   }
 
   async stop(): Promise<void> {
     const child = this.child;
     this.child = undefined;
-    clearTimeout(this.timer);
-    if (this.settle)
-      this.complete({
-        state: 'error',
-        code: 'ENGINE_EXITED',
-        message: 'The Windows helper was stopped.',
-      });
+    if (this.handshake && !this.status) this.setStatus(stopped);
+    this.rejectPending(stopped.code, stopped.message);
+    this.decoder.reset();
     if (!child || child.exitCode !== null || child.signalCode !== null || !child.pid) return;
     await new Promise<void>((resolve) => {
       const fallback = setTimeout(() => child.kill(), 500);
@@ -163,7 +252,6 @@ export class EngineClient {
       await this.stop();
       this.status = undefined;
       this.handshake = undefined;
-      this.buffer = Buffer.alloc(0);
       return this.getStatus();
     })().finally(() => {
       this.restarting = undefined;

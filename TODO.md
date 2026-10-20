@@ -4,9 +4,9 @@ Open work from the October 2026 project review. Milestone scope and acceptance c
 
 ## Before M1 (blocking)
 
-- [ ] **Turn the engine client into a request/response client.** `src/main/engine-client.ts` only performs the handshake; any frame after `ready` is treated as `INVALID_RESPONSE`. Add a `request(method, params)` API, a pending map keyed by request id, a timeout per request, and rejection of all pending requests when the helper exits. Rebuild the handshake on top of it.
-- [ ] **Split the frame size limits.** `MAX_FRAME_BYTES` (16 KiB) applies to both directions, and a real inventory of ~300 programs will exceed it. Keep a small request limit and add a separate, larger response limit (for example 8 MiB) on both the TypeScript and Rust sides, with tests.
-- [ ] **Type each engine method.** `native/engine/src/lib.rs` hard-codes `params: EmptyParams` and a single `engine.version` method. Replace it with a serde-tagged method enum so each method has `deny_unknown_fields` params, keeping `UNKNOWN_METHOD` and `INVALID_REQUEST` behavior.
+- [x] **Turn the engine client into a request/response client.** `src/main/engine-client.ts` only performs the handshake; any frame after `ready` is treated as `INVALID_RESPONSE`. Add a `request(method, params)` API, a pending map keyed by request id, a timeout per request, and rejection of all pending requests when the helper exits. Rebuild the handshake on top of it.
+- [x] **Split the frame size limits.** `MAX_FRAME_BYTES` (16 KiB) applies to both directions, and a real inventory of ~300 programs will exceed it. Keep a small request limit and add a separate, larger response limit (for example 8 MiB) on both the TypeScript and Rust sides, with tests.
+- [x] **Type each engine method.** `native/engine/src/lib.rs` hard-codes `params: EmptyParams` and a single `engine.version` method. Replace it with a serde-tagged method enum so each method has `deny_unknown_fields` params, keeping `UNKNOWN_METHOD` and `INVALID_REQUEST` behavior.
 - [ ] **Single source of truth for the protocol.** The JSON schemas, TypeScript types, and Rust structs are maintained by hand, and the error code list is already duplicated. Generate the schema from Rust (for example `schemars`) and the TypeScript types from the schema, and check for drift in CI.
 
 ## M1 preparation
@@ -23,7 +23,7 @@ Open work from the October 2026 project review. Milestone scope and acceptance c
 
 ## M3 design (no implementation yet)
 
-- [ ] Document server-pushed events (progress, phases) and request cancellation in the protocol. The engine is currently single-threaded and synchronous, so a running scan cannot receive `cancelScan`.
+- [x] Document server-pushed events (progress, phases) and request cancellation in the protocol. The engine is currently single-threaded and synchronous, so a running scan cannot receive `cancelScan`.
 
 ## Hardening
 
@@ -33,7 +33,7 @@ Open work from the October 2026 project review. Milestone scope and acceptance c
 
 ## Performance
 
-- [ ] Measure startup without Chromium remote debugging attached (for example, timestamps logged by the app). The 5.58 s M0 figure includes CDP attachment and first-launch Defender scanning of an unsigned executable.
+- [ ] Measure startup without Chromium remote debugging attached (for example, timestamps logged by the app). The 5.58 s M0 figure includes CDP attachment and first-launch Defender scanning of an unsigned executable. On 2026-10-21 the smoke test measured 15.5 s on the first launch of a fresh build, then 0.25 s and 0.24 s on the next two launches, so first-launch scanning dominates. Measure cold and warm launches separately.
 - [ ] Run the roadmap benchmark as defined: 30 cold launches and a 60-second idle sample.
 - [ ] Verify a clean build on a fresh Windows VM outside CI (still open in docs/M0.md).
 
@@ -48,4 +48,4 @@ Open work from the October 2026 project review. Milestone scope and acceptance c
 - [x] Use the operator's real full name in the Impressum and copyright notices (§5 DDG).
 - [x] Remove the Cloudflare account subdomain link from the website README.
 - [x] Update the screenshot credit in `docs/images/README.md` (added on GitHub in 8029831) from the old operator name to David Fuhrmann.
-- [ ] Decide whether to disable the `workers.dev` route (`"workers_dev": false` in `wrangler.jsonc`). The site is still reachable there, and the hostname contains the Cloudflare account name. Check the effect on Preview URLs first.
+- [x] Keep the `workers.dev` route and the old commit history as they are (decided 2026-10-21).

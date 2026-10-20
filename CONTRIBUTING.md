@@ -44,13 +44,15 @@ pnpm smoke
 
 Individual commands are `pnpm typecheck`, `pnpm test`, `pnpm test:native`, `pnpm lint:native`, and `pnpm format:check`. Use `pnpm format` for JavaScript, TypeScript, CSS, and supported configuration files; use `cargo fmt --all` for Rust. Build the native helper with `pnpm build:native`.
 
-TypeScript tests cover message validation, helper startup and failure behavior, resource paths, and sample search behavior. Rust tests cover the engine's framing, request validation, method allowlist, version mismatch, and EOF behavior. Keep the shared request fixture compatible with both implementations.
+TypeScript tests cover message validation, framing and size limits, request multiplexing, helper startup and failure behavior, resource paths, and sample search behavior. Rust tests cover the engine's framing, request and response limits, request validation, method allowlist, version mismatch, and EOF behavior. Keep the shared request fixture compatible with both implementations.
 
 ## Boundaries to preserve
 
 The renderer calls named methods on `window.leu`. Add or change the shared bridge type when an action is introduced; do not expose raw IPC, shell commands, or native filesystem handles. Validate the sending window and frame in main process handlers.
 
-The helper uses bounded newline delimited JSON on private stdin and stdout. Reserve stdout for protocol frames and stderr for diagnostics. Version requests are the only supported native action in M0. The demo provider is explicit and independent of the native engine; a helper failure must never cause fabricated live inventory.
+The helper uses bounded newline delimited JSON on private stdin and stdout: 16 KiB per request and 8 MiB per response. Reserve stdout for protocol frames and stderr for diagnostics. Version requests are the only supported native action in M0.
+
+To add an engine method, change all three places together: the parameter and result schemas in `src/contracts/methods.json`, the `EngineMethods` type in `src/contracts/protocol.ts`, and the `METHODS` list and `Method` enum in `native/engine/src/lib.rs`. Then call it through `EngineClient.request`. See the helper protocol section of the [architecture](docs/ARCHITECTURE.md). The demo provider is explicit and independent of the native engine; a helper failure must never cause fabricated live inventory.
 
 Keep destructive integration tests inside disposable Windows VMs once uninstall and cleanup operations exist. Never use a contributor's installed applications as deletion fixtures.
 

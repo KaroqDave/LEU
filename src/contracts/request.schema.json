@@ -7,6 +7,6 @@
     "protocolVersion": { "type": "integer", "minimum": 1 },
     "id": { "type": "string", "minLength": 1, "maxLength": 64 },
     "method": { "type": "string", "minLength": 1, "maxLength": 64 },
-    "params": { "type": "object", "additionalProperties": false }
+    "params": { "type": "object" }
   }
 }

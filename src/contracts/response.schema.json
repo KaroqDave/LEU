@@ -9,16 +9,7 @@
         "protocolVersion": { "type": "integer", "minimum": 1 },
         "id": { "type": "string", "minLength": 1, "maxLength": 64 },
         "ok": { "const": true },
-        "result": {
-          "type": "object",
-          "additionalProperties": false,
-          "required": ["engineVersion", "platform", "arch"],
-          "properties": {
-            "engineVersion": { "type": "string", "minLength": 1, "maxLength": 64 },
-            "platform": { "type": "string", "minLength": 1, "maxLength": 32 },
-            "arch": { "type": "string", "minLength": 1, "maxLength": 32 }
-          }
-        }
+        "result": { "type": "object" }
       }
     },
     {
@@ -35,7 +26,13 @@
           "required": ["code", "message"],
           "properties": {
             "code": {
-              "enum": ["INVALID_REQUEST", "PROTOCOL_MISMATCH", "UNKNOWN_METHOD", "FRAME_TOO_LARGE"]
+              "enum": [
+                "INVALID_REQUEST",
+                "PROTOCOL_MISMATCH",
+                "UNKNOWN_METHOD",
+                "FRAME_TOO_LARGE",
+                "RESPONSE_TOO_LARGE"
+              ]
             },
             "message": { "type": "string", "maxLength": 256 }
           }

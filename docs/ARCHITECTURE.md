@@ -100,6 +100,20 @@ These are proposed signatures, not implemented APIs. Read-only milestones expose
 
 Use a protocol version, request identifier, method allowlist, payload limits, deadlines, and structured success or failure responses. Newline delimited JSON over private child process pipes is sufficient for the ordinary helper. Do not open a localhost control server.
 
+### Helper protocol
+
+The main process owns one helper and multiplexes requests over its pipes by request identifier; responses may arrive in any order. Each method declares its parameters and result in `src/contracts/methods.json`, a matching TypeScript entry in `EngineMethods`, and a variant of the Rust `Method` enum with `deny_unknown_fields` parameters. The envelope is validated first, then the method's parameters or result.
+
+Frame limits differ by direction and include the newline. Requests carry identifiers rather than bulk data and stay at 16 KiB. Responses may reach 8 MiB so a full inventory fits in one frame; the engine replaces a larger response with `RESPONSE_TOO_LARGE` rather than truncating it. If a result could exceed that bound, page it explicitly rather than raising the limit.
+
+An error response rejects only its request. A malformed frame, a contract violation, an unsolicited response, or a missed deadline ends the connection and rejects every pending request, because the stream can no longer be trusted. The interface then offers a reconnect.
+
+The engine currently handles one request at a time. Before scans (M3), extend the protocol in a backward compatible way:
+
+- **Events.** Add a third frame kind, `{ protocolVersion, event, operationId, data }`, with no `id` and no `ok`, for progress, phase changes, and partial results. Events are validated per event name, like method results, and are routed by operation identifier. The response to the starting request returns that identifier.
+- **Cancellation.** Add an `operation.cancel` method that the engine answers immediately while the operation keeps running. The operation then finishes with a terminal event that reports whether it completed, was canceled, or failed. This requires reading requests on a separate thread from the work they start, with bounded concurrency.
+- **Deadlines.** Long operations are not bound by a single request deadline. The starting request must respond promptly; liveness then comes from events and an inactivity timeout.
+
 The engine creates immutable, expiring plans. A plan records the inventory snapshot, action, program identity, and relevant resource fingerprints. The interface submits a plan identifier after the user reviews it. The engine rechecks the underlying state before acting and invalidates stale plans.
 
 ## Vendor uninstallation
