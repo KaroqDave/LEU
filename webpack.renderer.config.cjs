@@ -1,7 +1,7 @@
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 
-module.exports = {
-  devtool: 'source-map',
+module.exports = (_env, { mode }) => ({
+  devtool: mode === 'production' ? false : 'source-map',
   module: {
     rules: [
       ...require('./webpack.rules.cjs'),
@@ -12,4 +12,4 @@ module.exports = {
   plugins: [new MiniCssExtractPlugin({ filename: '[name].css' })],
   output: { publicPath: '/' },
   resolve: { extensions: ['.js', '.ts', '.tsx', '.json'] },
-};
+});

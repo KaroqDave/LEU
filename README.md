@@ -6,10 +6,10 @@
 </picture>
 
 [![Windows checks](https://github.com/KaroqDave/LEU/actions/workflows/ci.yml/badge.svg)](https://github.com/KaroqDave/LEU/actions/workflows/ci.yml)
-[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Website](https://img.shields.io/badge/Website-getleu.app-5865F2)](https://getleu.app)
 
-[**Website**](https://getleu.app) · [Documentation](https://getleu.app/docs) · [Roadmap](docs/ROADMAP.md)
+[Documentation](#project-documents) · [Roadmap](docs/ROADMAP.md) · [Privacy](PRIVACY.md) · [MIT license](LICENSE)
+
+The project website has been retired. Documentation, development updates, and support are maintained in this repository.
 
 **Early development · Windows 11 x64 · No public installer yet**
 
@@ -17,7 +17,7 @@ LEU is an open source Windows uninstaller project with a modern Electron interfa
 
 ![LEU's dark Installed apps screen showing sample inventory, search, and application details](docs/images/installed-apps-dark.png)
 
-_Development preview with sample data. Real Windows discovery, uninstall, and cleanup are not available yet. [Screenshot source and attribution](docs/images/README.md)._
+_Development preview with sample data. Real Windows discovery, uninstall, and cleanup are not available yet. [Screenshot provenance and licensing](docs/images/README.md)._
 
 The central product principle is **explain every cleanup action before making it**. A useful result tells the user what LEU found, why it belongs to the selected program, and what keeping or removing it means.
 
@@ -77,6 +77,7 @@ Electron bundles Chromium and Node.js, so its runtime creates a baseline footpri
 - [M0 status](docs/M0.md) records the foundation implementation, verification, and baseline measurements.
 - [Visual identity](docs/BRANDING.md) covers the editable logos, app icon, interface icons, and export command.
 - [Contributor guide](CONTRIBUTING.md) explains setup and local checks.
+- [Privacy](PRIVACY.md) describes current data handling, local storage, and safe sharing.
 - [Security reporting](SECURITY.md) explains how to report vulnerabilities privately.
 
 ## Open source setup

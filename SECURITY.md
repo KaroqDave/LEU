@@ -8,6 +8,8 @@ Use [GitHub's private vulnerability reporting form](https://github.com/KaroqDave
 
 Do not publish credentials, personal inventory, or exploit details in ordinary public issues. Use [public issues](https://github.com/KaroqDave/LEU/issues) for non-sensitive bugs and feature requests.
 
+See [PRIVACY.md](PRIVACY.md) for current data handling and report redaction. Private reports can also contain sensitive data; share only what is needed to reproduce the issue. Report unexpected outbound requests or disclosure of personal paths, inventory, credentials, or build-machine details through the same private channel.
+
 ## Relevant boundaries
 
 Report issues involving renderer access to native capabilities, IPC sender checks, protocol validation, helper execution, packaged resource access, and any future elevation or cleanup behavior. Never test a suspected cleanup issue against irreplaceable data.

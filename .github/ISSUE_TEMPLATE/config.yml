@@ -4,5 +4,5 @@ contact_links:
     url: https://github.com/KaroqDave/LEU/security/advisories/new
     about: Report sensitive security issues privately.
   - name: Documentation
-    url: https://getleu.app/docs
+    url: https://github.com/KaroqDave/LEU#project-documents
     about: Read about LEU's current capabilities and how to get involved.

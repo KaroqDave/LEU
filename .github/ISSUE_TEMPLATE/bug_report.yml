@@ -9,6 +9,7 @@ body:
         Search [existing issues](https://github.com/KaroqDave/LEU/issues) before reporting a bug.
         LEU is in early development: sample inventory is expected, and real discovery, uninstall, and cleanup are not implemented yet.
         Report security vulnerabilities [privately](https://github.com/KaroqDave/LEU/security/advisories/new).
+        This is a public form. Use sample data and remove personal information before submitting; see [privacy guidance](https://github.com/KaroqDave/LEU/blob/main/PRIVACY.md#sharing-reports-and-contributions).
   - type: input
     id: revision
     attributes:
@@ -47,11 +48,11 @@ body:
     id: actual
     attributes:
       label: Actual behavior
-      description: What happened instead? Include the exact error message if available.
+      description: What happened instead? Include a redacted error message if available.
     validations:
       required: true
   - type: textarea
     id: context
     attributes:
       label: Logs, screenshots, or other context
-      description: Optional. Remove personal paths, usernames, credentials, and other private information before sharing.
+      description: Optional. Prefer demo data. Remove usernames, personal paths, installed software lists, credentials, device names, and private windows. Do not attach raw diagnostic folders or crash dumps.

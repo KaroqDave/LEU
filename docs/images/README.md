@@ -1,16 +1,15 @@
 # README screenshot
 
-`installed-apps-dark.png` is the unmodified real application capture used in the
-[LEU website screenshot section](https://getleu.app/#screenshots), copied from the
-website repository's `src/assets/installed-apps-dark.png`. It shows the M0 foundation
-with sample data, not a public release or live Windows inventory.
+`installed-apps-dark.png` is a fresh capture of the packaged M0 application,
+generated with `pnpm package` and `pnpm smoke`. It replaces the former website
+capture and shows only bundled synthetic inventory, including the `Demo` user path.
+It is a development preview, not a public release or live Windows inventory.
 
-LEU website screenshot © 2026 David Fuhrmann, [LEU project](https://getleu.app).
-The project's rights in the capture are licensed under
-[CC BY 4.0](https://creativecommons.org/licenses/by/4.0/); see the included
-[license text](CC-BY-4.0.txt) and the website's
-[licensing notice](https://getleu.app/licensing). Changes: none.
+The project's rights in this new capture are covered by the repository's
+[MIT license](../../LICENSE), copyright 2026 LEU contributors.
 
 The underlying LEU application and inherited branding retain their
 [MIT permissions and notice](../../LICENSE). Third-party names, logos, and artwork
-are excluded from the CC grant and retain their respective rights.
+retain their respective rights. Use demo data for future captures and follow
+[the privacy guidance](../../PRIVACY.md#sharing-reports-and-contributions) before
+committing images.

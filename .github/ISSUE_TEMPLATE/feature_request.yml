@@ -8,6 +8,7 @@ body:
       value: |
         Check [existing issues](https://github.com/KaroqDave/LEU/issues) and the [roadmap](https://github.com/KaroqDave/LEU/blob/main/docs/ROADMAP.md) first.
         If your idea is already planned, explain the use case or detail that is missing.
+        This form is public. Use synthetic examples and remove personal data from text and images; see [privacy guidance](https://github.com/KaroqDave/LEU/blob/main/PRIVACY.md#sharing-reports-and-contributions).
   - type: textarea
     id: problem
     attributes:

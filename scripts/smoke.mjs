@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import { spawn, execFile } from 'node:child_process';
-import { copyFile, mkdir, stat, writeFile } from 'node:fs/promises';
+import { copyFile, mkdir, readFile, stat, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
+import { createServer } from 'node:http';
 import path from 'node:path';
 import os from 'node:os';
 import { promisify } from 'node:util';
@@ -12,6 +13,30 @@ const execFileAsync = promisify(execFile);
 const output = path.join(root, 'out', 'smoke');
 const executable = path.join(root, 'out', 'LEU-win32-x64', 'LEU.exe');
 if (!existsSync(executable)) throw new Error('Run pnpm package before pnpm smoke.');
+// Inspect shipped bytes as well as source: panic strings can expose build-machine paths.
+const localRoots = [root, os.homedir(), process.env.CARGO_HOME, process.env.RUSTUP_HOME]
+  .filter(Boolean)
+  .map((entry) => path.resolve(entry));
+for (const name of ['app.asar', 'leu-engine.exe']) {
+  const bytes = await readFile(path.join(path.dirname(executable), 'resources', name));
+  for (const localRoot of localRoots) {
+    const variants = [
+      localRoot,
+      localRoot.replaceAll('\\', '/'),
+      JSON.stringify(localRoot).slice(1, -1),
+      encodeURI(localRoot),
+    ];
+    for (const variant of variants) {
+      for (const encoding of ['utf8', 'utf16le']) {
+        assert.equal(
+          bytes.includes(Buffer.from(variant, encoding)),
+          false,
+          `${name} must not contain local build-machine paths.`,
+        );
+      }
+    }
+  }
+}
 await mkdir(output, { recursive: true });
 const profile = path.join(root, '.cache', 'smoke-profile');
 await mkdir(profile, { recursive: true });
@@ -71,6 +96,75 @@ const exited = new Promise((resolve) =>
   }),
 );
 const errors = [];
+
+async function verifyNetworkPolicy(page) {
+  let received = 0;
+  const server = createServer((_request, response) => {
+    received++;
+    response.setHeader('Access-Control-Allow-Origin', '*');
+    response.end('Unexpected network request');
+  });
+  server.on('upgrade', (_request, socket) => {
+    received++;
+    socket.destroy();
+  });
+  await new Promise((resolve, reject) => {
+    server.once('error', reject);
+    server.listen(0, '127.0.0.1', resolve);
+  });
+  const cdp = await page.context().newCDPSession(page);
+  try {
+    // Confirm CSP blocks connections, then bypass it to exercise the session policy separately.
+    assert.equal(
+      await page.evaluate(() =>
+        fetch(location.href).then(
+          () => false,
+          () => true,
+        ),
+      ),
+      true,
+    );
+    await cdp.send('Page.setBypassCSP', { enabled: true });
+    await page.reload();
+    assert.equal(await page.evaluate(async () => (await fetch(location.href)).ok), true);
+    const url = `http://127.0.0.1:${server.address().port}/privacy-check`;
+    const failedRequest = page.waitForEvent('requestfailed', {
+      predicate: (request) => request.url() === url,
+    });
+    const blocked = await page.evaluate(async (url) => {
+      const http = await fetch(url).then(
+        () => false,
+        () => true,
+      );
+      const websocket = await new Promise((resolve) => {
+        const socket = new WebSocket(url.replace('http:', 'ws:'));
+        const timer = setTimeout(() => {
+          socket.close();
+          resolve(false);
+        }, 3000);
+        socket.onerror = () => {
+          clearTimeout(timer);
+          resolve(true);
+        };
+        socket.onopen = () => {
+          clearTimeout(timer);
+          socket.close();
+          resolve(false);
+        };
+      });
+      return { http, websocket };
+    }, url);
+    assert.deepEqual(blocked, { http: true, websocket: true });
+    assert.equal((await failedRequest).failure().errorText, 'net::ERR_BLOCKED_BY_CLIENT');
+    assert.equal(received, 0, 'Blocked requests must never reach the server.');
+  } finally {
+    await cdp.send('Page.setBypassCSP', { enabled: false });
+    await page.reload();
+    await cdp.detach();
+    server.closeAllConnections();
+    await new Promise((resolve) => server.close(resolve));
+  }
+}
 
 async function metrics() {
   const script = `
@@ -143,9 +237,13 @@ try {
     'onEngineStatus',
     'restartEngine',
   ]);
-  await page.screenshot({ path: path.join(output, 'installed-apps-light.png') });
+  await verifyNetworkPolicy(page);
+  await page.getByRole('button', { name: /Engine connected/ }).waitFor();
+  await page.setViewportSize({ width: 1380, height: 1060 });
+  await page.locator('.program-choice').filter({ hasText: 'Figma' }).click();
+  await page.screenshot({ path: path.join(output, 'installed-apps-light.png'), scale: 'css' });
   await page.emulateMedia({ colorScheme: 'dark' });
-  await page.screenshot({ path: path.join(output, 'installed-apps-dark.png') });
+  await page.screenshot({ path: path.join(output, 'installed-apps-dark.png'), scale: 'css' });
   await page.emulateMedia({ colorScheme: 'light' });
   await page.getByRole('textbox', { name: 'Search applications' }).fill('Mozilla');
   assert.equal(await page.locator('.program-choice').count(), 1);
@@ -218,7 +316,7 @@ try {
   await writeFile(path.join(output, 'baseline.json'), JSON.stringify(measurement, null, 2) + '\n');
   console.log(JSON.stringify(measurement, null, 2));
   console.log(
-    'Packaged smoke test passed: sandbox, bridge, helper, navigation, search, reconnect, shutdown.',
+    'Packaged smoke test passed: artifact privacy, network policy, sandbox, bridge, helper, navigation, search, reconnect, shutdown.',
   );
 } finally {
   await browser?.close();

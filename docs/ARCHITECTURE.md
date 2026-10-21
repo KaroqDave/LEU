@@ -189,7 +189,9 @@ Record the machine, OS, Electron version, build type, and dataset with measureme
 
 Keep expensive work in the engine, cache icons, limit concurrent directory work, and start scans on request. Do not install a background service or start with Windows by default. These choices align with [Electron's performance guidance](https://www.electronjs.org/docs/latest/tutorial/performance).
 
-Inventory, paths, journals, and quarantine remain local. Diagnostic exports require a user action and provide a preview with usernames and sensitive paths redacted. Network access for release checks is separate from core functionality, and update installation must verify release authenticity.
+The current M0 data handling is documented in [PRIVACY.md](../PRIVACY.md). Packaged browser sessions block external network requests; development uses only the local Forge server for the interface. Production source maps are omitted, and release helper builds remap machine-specific source paths.
+
+For future capabilities, inventory, paths, journals, and quarantine must remain local. Diagnostic exports require a user action and provide a preview with usernames and sensitive paths redacted. Network access for release checks is separate from core functionality, and update installation must verify release authenticity. New Node.js or native network APIs need their own privacy review because they bypass the browser-session request policy.
 
 ## Proposed repository layout
 

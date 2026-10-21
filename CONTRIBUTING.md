@@ -34,6 +34,14 @@ The executable is `out/LEU-win32-x64/LEU.exe`. Keep its entire directory togethe
 
 The smoke test launches the packaged executable, connects a temporary Chromium debugging session, checks the restricted renderer and real helper handshake, exercises navigation and search, reconnects the helper, and verifies normal shutdown. It saves screenshots and a small performance baseline under `out/smoke`. No separate Playwright browser download is needed because the test uses Electron's Chromium.
 
+## Privacy when developing and sharing
+
+Read [PRIVACY.md](PRIVACY.md) before sharing reports or captures. Use synthetic fixtures and the app's demo inventory. Review screenshots for personal paths, account names, notifications, and unrelated windows; review text for credentials, installed software, and machine identifiers. Never commit real inventories, user profiles, raw logs, crash dumps, signing keys, or local credentials. Ignore rules reduce accidental additions but do not sanitize files or Git history.
+
+The smoke profile in `.cache/smoke-profile` and captures and measurements in `out/smoke` stay local and are ignored by Git. The baseline includes OS and hardware details and process IDs; do not upload it without reviewing and redacting it. The debugging endpoint is enabled only by the smoke command and binds to loopback. Close the test app when finished.
+
+Packaged builds block browser-session network requests. Development uses Forge's local HTTP and WebSocket server, and dependency installation can contact external registries. Production JavaScript and CSS omit source maps. The release helper build remaps workspace, home, Cargo, and Rust toolchain paths to generic prefixes while retaining the static C runtime. Custom compiler flags and new dependencies require another artifact check before sharing a build.
+
 ## Checks
 
 ```powershell

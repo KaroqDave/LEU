@@ -65,6 +65,11 @@ app
     );
     session.defaultSession.setPermissionCheckHandler(() => false);
     if (app.isPackaged) {
+      // Enforce local-only browser requests even if renderer CSP is bypassed.
+      session.defaultSession.webRequest.onBeforeRequest(({ url }, callback) => {
+        const localProtocols = ['leu:', 'file:', 'data:', 'blob:', 'devtools:'];
+        callback({ cancel: !localProtocols.includes(new URL(url).protocol) });
+      });
       const assetRoot = path.dirname(path.dirname(fileURLToPath(MAIN_WINDOW_WEBPACK_ENTRY)));
       protocol.handle('leu', async (request) => {
         const url = new URL(request.url);

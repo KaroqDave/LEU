@@ -19,7 +19,7 @@ Open work from the October 2026 project review. Milestone scope and acceptance c
 - [ ] Move `initials` and `color` out of the `Program` contract. They are presentation details and belong in the renderer.
 - [ ] Split `App.tsx` (578 lines) into per-view components before adding loading, refresh, and partial error states.
 - [ ] Add ESLint with `eslint-plugin-react-hooks`.
-- [ ] Capture the last few KB of helper stderr instead of discarding it (`child.stderr.resume()`), for crash diagnostics.
+- [ ] Design optional, bounded helper diagnostics with a user preview and redaction before export. Helper stderr is currently discarded; preserve the privacy behavior in [PRIVACY.md](PRIVACY.md).
 
 ## Protocol review follow-ups
 
@@ -62,9 +62,9 @@ Resolved on 2026-10-22. Validation: `pnpm check` (43 JavaScript/TypeScript tests
 - [ ] Consider tightening the path to the first useful alpha (M2 + M3). M1 alone mostly duplicates Windows Settings.
 - [ ] Decide whether to keep "Light Electron" prominent in the branding or lead with "LEU".
 
-## Website (separate repository: KaroqDave/leu-website)
+## Repository privacy
 
-- [x] Use the operator's real full name in the Impressum and copyright notices (§5 DDG).
-- [x] Remove the Cloudflare account subdomain link from the website README.
-- [x] Update the screenshot credit in `docs/images/README.md` (added on GitHub in 8029831) from the old operator name to David Fuhrmann.
-- [x] Keep the `workers.dev` route and the old commit history as they are (decided 2026-10-21).
+- [x] Retire website links and keep documentation and support in this repository.
+- [x] Replace the former screenshot with a fresh capture using only synthetic demo data.
+- [x] Document current data handling and safe sharing; block packaged browser-session network requests and omit production source maps.
+- [x] Remap build-machine paths in the release helper and check packaged artifacts for local path disclosure.

@@ -10,7 +10,9 @@ For documentation-only changes, check formatting and links. -->
 
 ## Screenshots
 
-<!-- For interface changes, include before/after screenshots. Otherwise remove this section. -->
+<!-- For interface changes, include before/after screenshots using demo data. Remove personal
+paths, usernames, device details, credentials, and unrelated windows before sharing. See PRIVACY.md.
+Otherwise remove this section. -->
 
 ## Risks and recovery
 

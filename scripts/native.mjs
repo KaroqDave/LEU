@@ -2,6 +2,7 @@ import { spawn } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
+import os from 'node:os';
 
 export const root = fileURLToPath(new URL('../', import.meta.url));
 export const target = 'x86_64-pc-windows-msvc';
@@ -44,9 +45,17 @@ export function cargo() {
 
 export async function native(action) {
   const { command, env } = cargo();
+  // Cargo merges these target flags with .cargo/config.toml, retaining +crt-static.
+  const remappedPaths = [
+    [os.homedir(), '/user'],
+    [root, '/leu'],
+    [env.CARGO_HOME ?? path.join(os.homedir(), '.cargo'), '/cargo'],
+    [env.RUSTUP_HOME ?? path.join(os.homedir(), '.rustup'), '/rustup'],
+  ].map(([from, to]) => `--remap-path-prefix=${path.resolve(from)}=${to}`);
+  const remapConfig = `target.${target}.rustflags=${JSON.stringify(remappedPaths)}`;
   // Check both the shipped helper and the schema feature used by the contract generator.
   const commands = {
-    build: [['build', '--release', '--locked', '--target', target]],
+    build: [['build', '--release', '--locked', '--target', target, '--config', remapConfig]],
     clean: [['clean', '-p', 'leu-engine', '--target', target]],
     test: [
       ['test', '--locked', '--target', target],

@@ -12,6 +12,7 @@ module.exports = {
     extraResource: [
       path.join(__dirname, 'target/x86_64-pc-windows-msvc/release/leu-engine.exe'),
       path.join(__dirname, 'LICENSE'),
+      path.join(__dirname, 'PRIVACY.md'),
       path.join(__dirname, 'assets/branding/app-icons/leu.ico'),
     ],
     win32metadata: {
