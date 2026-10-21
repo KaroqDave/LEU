@@ -6,7 +6,7 @@ const mode = process.argv[2];
 const MAX_RESPONSE_BYTES = require('../../src/contracts/contract.json').limits.responseBytes;
 const version = { engineVersion: '0.1.0', platform: 'windows', arch: 'x86_64' };
 const ok = (request, result = version) => ({
-  protocolVersion: mode === 'mismatch' ? 2 : 1,
+  protocolVersion: mode.startsWith('mismatch') ? 2 : mode === 'invalid-version' ? '2' : 1,
   id: mode === 'wrong-id' ? 'other-request' : request.id,
   ok: true,
   result,
@@ -28,7 +28,11 @@ function handle(request) {
       process.stdout.write('{not json}\n');
       return;
     }
-    const response = frame(ok(request));
+    const envelope = ok(request);
+    if (mode === 'extra' || mode === 'mismatch-extra') envelope.futureField = true;
+    const response = frame(
+      mode === 'mismatch-envelope' ? { protocolVersion: 2, futurePayload: {} } : envelope,
+    );
     if (mode === 'fragmented') {
       process.stdout.write(response.slice(0, 12));
       setTimeout(() => process.stdout.write(response.slice(12)), 20);
@@ -54,8 +58,11 @@ function handle(request) {
   }
   if (count === 2 && mode === 'stall-second') return;
   if (count === 2 && mode === 'exit-second') process.exit(3);
-  if (count === 2 && mode === 'reject-second') {
-    const error = { code: 'UNKNOWN_METHOD', message: 'Unsupported engine method.' };
+  if (count === 2 && (mode === 'reject-second' || mode === 'invalid-request-second')) {
+    const error = {
+      code: mode === 'reject-second' ? 'UNKNOWN_METHOD' : 'INVALID_REQUEST',
+      message: 'Rejected request.',
+    };
     process.stdout.write(frame({ protocolVersion: 1, id: request.id, ok: false, error }));
     return;
   }

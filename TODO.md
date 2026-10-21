@@ -25,16 +25,18 @@ Open work from the October 2026 project review. Milestone scope and acceptance c
 
 From the 2026-10-21 code review of the request multiplexing and contract generation commits.
 
-- [ ] `scripts/contracts.mjs` parses the generator output on the child's `exit` event, which can fire before stdout has drained. A truncated read makes `JSON.parse` throw inside the event handler, outside the `try`, so `pnpm contracts:check` can fail intermittently. Wait for `close` and reject on parse errors.
-- [ ] Check the protocol version before strict envelope validation, on both sides. `src/main/engine-client.ts` runs `isEngineResponse` (`additionalProperties: false`) first, and the Rust `Envelope` uses `deny_unknown_fields` before comparing versions. A future envelope change is reported as `INVALID_RESPONSE` or `INVALID_REQUEST` instead of `PROTOCOL_MISMATCH`.
-- [ ] `engine_methods!` in `native/engine/src/lib.rs` declares `-> $result` but does not tie it to the handler's return type, because `success()` takes `impl Serialize`. Let the macro generate the dispatch arms so the exported result schema cannot drift from what is sent.
-- [ ] `EngineClient.stop()` leaves `status` as `ready` after stopping a connected helper. During `restart()`, `leu:engine-status` returns a stale `ready` while the old helper shuts down, and no status event is emitted.
-- [ ] The Smart App Control hint in `CONTRIBUTING.md` suggests `cargo clean -p leu-engine` without `--target x86_64-pc-windows-msvc`. The scripts build into `target/x86_64-pc-windows-msvc`, so the blocked binary is probably not removed. Verify, and mention the repo-local `.tools/cargo` toolchain.
-- [ ] The generated `EngineVersionParams` is `{}`, which accepts any non-nullish value in TypeScript, so bad params only fail at runtime. Generate `Record<string, never>` for closed empty-object schemas.
-- [ ] Client-side request rejections in `EngineClient.send()` use the remote code `INVALID_REQUEST`, so callers cannot tell them from engine-reported errors. Add a local code to `EngineErrorCode`.
-- [ ] Native tests and Clippy run only with `--all-features`, so the shipped default-feature build is never linted or tested. Add a default-feature Clippy (and test) pass in `scripts/native.mjs`.
-- [ ] `scripts/contracts.mjs` titles the error-code type through the hard-coded path `response.oneOf[1].properties.error.properties.code`. Set the title in Rust instead, for example `#[schemars(title = "EngineRemoteErrorCode")]` on `ErrorCode`.
-- [ ] The request and response envelope schemas in `native/engine/src/contract.rs` are hand-written and duplicate the rules in `Envelope`, `handle_frame`, `success`, and `failure`. Derive them from typed request and response structs so the envelope is generated too, not only the method payloads.
+- [x] Wait for the contract generator's `close` event and reject parse errors. Buffer stdout bytes until all streams drain, including split UTF-8 sequences; regression tests cover late output and process, stream, and JSON failures.
+- [x] Check recognizable protocol versions before strict envelope validation on both sides. Future envelope changes report `PROTOCOL_MISMATCH`; matching-version envelopes remain strict.
+- [x] Generate dispatch in `engine_methods!` and bind each handler's return value to its declared result type, preventing runtime responses from drifting from the exported result schema.
+- [x] Publish stopped status before shutting down a connected helper, including during restart. Preserve existing failures and reject requests after stopping; regression tests cover status queries and events.
+- [x] Verify target-specific Cargo cleanup with `--dry-run`. Document `node scripts/native.mjs clean`, which uses `--target x86_64-pc-windows-msvc` and automatically selects the repo-local `.tools/cargo` and `.tools/rustup` toolchain.
+- [x] Generate `Record<string, never>` for closed empty-object schemas, including nested objects. Add compile-time checks rejecting primitives, arrays, functions, and objects with fields as version params.
+- [x] Use the local `INVALID_LOCAL_REQUEST` error code for client-side validation failures, distinct from engine-reported `INVALID_REQUEST` errors.
+- [x] Run native tests and Clippy with both default features and `--all-features`, covering the shipped helper and contract generator.
+- [x] Set the `EngineRemoteErrorCode` schema title on Rust's `ErrorCode`; remove the hard-coded response schema path from the TypeScript generator.
+- [x] Derive request and response envelope schemas from the structs parsed and serialized by the engine. Use deserialization schemas for requests and serialization schemas for responses, preserving required nullable failure IDs and typed boolean discriminators.
+
+Resolved on 2026-10-22. Validation: `pnpm check` (43 JavaScript/TypeScript tests, 12 default-feature Rust tests, 14 all-feature Rust tests, contract drift, types, Clippy, and formatting), `pnpm package`, and `pnpm smoke`.
 
 ## M3 design (no implementation yet)
 

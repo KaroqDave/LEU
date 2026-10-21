@@ -49,3 +49,20 @@ test('accepts each engine error code and rejects unknown ones', () => {
     assert.equal(isEngineResponse(failure(code)), true, code);
   assert.equal(isEngineResponse(failure('SOMETHING_ELSE')), false);
 });
+
+test('keeps response IDs required and nullable only on failures', () => {
+  const failure = {
+    protocolVersion: 1,
+    id: null,
+    ok: false,
+    error: { code: 'INVALID_REQUEST', message: 'Invalid request.' },
+  };
+  assert.equal(isEngineResponse(failure), true);
+  assert.equal(isEngineResponse({ ...failure, id: fixture.id }), true);
+  const { id: _id, ...withoutId } = failure;
+  assert.equal(isEngineResponse(withoutId), false);
+  assert.equal(isEngineResponse({ ...failure, extra: true }), false);
+  assert.equal(isEngineResponse({ ...failure, ok: true }), false);
+  assert.equal(isEngineResponse({ ...failure, error: { ...failure.error, extra: true } }), false);
+  assert.equal(isEngineResponse({ protocolVersion: 1, id: null, ok: true, result: {} }), false);
+});

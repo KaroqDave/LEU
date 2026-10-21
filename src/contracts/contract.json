@@ -7,6 +7,7 @@
       "FRAME_TOO_LARGE",
       "RESPONSE_TOO_LARGE"
     ],
+    "title": "EngineRemoteErrorCode",
     "type": "string"
   },
   "limits": { "requestBytes": 16384, "responseBytes": 8388608 },
@@ -32,7 +33,7 @@
     "properties": {
       "id": { "maxLength": 64, "minLength": 1, "type": "string" },
       "method": { "maxLength": 64, "minLength": 1, "type": "string" },
-      "params": { "type": "object" },
+      "params": { "additionalProperties": true, "type": "object" },
       "protocolVersion": { "minimum": 1, "type": "integer" }
     },
     "required": ["protocolVersion", "id", "method", "params"],
@@ -40,14 +41,14 @@
     "type": "object"
   },
   "response": {
-    "oneOf": [
+    "anyOf": [
       {
         "additionalProperties": false,
         "properties": {
           "id": { "maxLength": 64, "minLength": 1, "type": "string" },
-          "ok": { "const": true },
+          "ok": { "const": true, "type": "boolean" },
           "protocolVersion": { "minimum": 1, "type": "integer" },
-          "result": { "type": "object" }
+          "result": { "additionalProperties": true, "type": "object" }
         },
         "required": ["protocolVersion", "id", "ok", "result"],
         "title": "EngineSuccessResponse",
@@ -67,6 +68,7 @@
                   "FRAME_TOO_LARGE",
                   "RESPONSE_TOO_LARGE"
                 ],
+                "title": "EngineRemoteErrorCode",
                 "type": "string"
               },
               "message": { "maxLength": 256, "type": "string" }
@@ -75,7 +77,7 @@
             "type": "object"
           },
           "id": { "maxLength": 64, "type": ["string", "null"] },
-          "ok": { "const": false },
+          "ok": { "const": false, "type": "boolean" },
           "protocolVersion": { "minimum": 1, "type": "integer" }
         },
         "required": ["protocolVersion", "id", "ok", "error"],

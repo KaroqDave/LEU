@@ -129,7 +129,7 @@ export class EngineClient {
     const frame = isEngineRequest(request) ? encodeFrame(request, MAX_REQUEST_BYTES) : undefined;
     if (!frame)
       return Promise.reject(
-        new EngineError('INVALID_REQUEST', 'The engine request is invalid or too large.'),
+        new EngineError('INVALID_LOCAL_REQUEST', 'The engine request is invalid or too large.'),
       );
     return new Promise<EngineResult<M>>((resolve, reject) => {
       const timer = setTimeout(
@@ -173,6 +173,22 @@ export class EngineClient {
       this.fail('INVALID_RESPONSE', 'The Windows helper sent invalid JSON.');
       return;
     }
+    // Read a recognizable version before applying this version's closed envelope schema.
+    if (
+      typeof response === 'object' &&
+      response !== null &&
+      'protocolVersion' in response &&
+      typeof response.protocolVersion === 'number' &&
+      Number.isInteger(response.protocolVersion) &&
+      response.protocolVersion >= 0 &&
+      response.protocolVersion !== PROTOCOL_VERSION
+    ) {
+      this.fail(
+        'PROTOCOL_MISMATCH',
+        'App and helper protocols do not match. Rebuild or reinstall them together.',
+      );
+      return;
+    }
     if (!isEngineResponse(response)) {
       this.fail(
         'INVALID_RESPONSE',
@@ -180,10 +196,7 @@ export class EngineClient {
       );
       return;
     }
-    if (
-      response.protocolVersion !== PROTOCOL_VERSION ||
-      (!response.ok && response.error.code === 'PROTOCOL_MISMATCH')
-    ) {
+    if (!response.ok && response.error.code === 'PROTOCOL_MISMATCH') {
       this.fail(
         'PROTOCOL_MISMATCH',
         'App and helper protocols do not match. Rebuild or reinstall them together.',
@@ -232,7 +245,7 @@ export class EngineClient {
   async stop(): Promise<void> {
     const child = this.child;
     this.child = undefined;
-    if (this.handshake && !this.status) this.setStatus(stopped);
+    if ((this.handshake || this.status) && this.status?.state !== 'error') this.setStatus(stopped);
     this.rejectPending(stopped.code, stopped.message);
     this.decoder.reset();
     if (!child || child.exitCode !== null || child.signalCode !== null || !child.pid) return;

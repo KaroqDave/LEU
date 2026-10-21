@@ -44,12 +44,17 @@ export function cargo() {
 
 export async function native(action) {
   const { command, env } = cargo();
-  // Tests and lints include the contract generator; the shipped helper is built without it.
+  // Check both the shipped helper and the schema feature used by the contract generator.
   const commands = {
     build: [['build', '--release', '--locked', '--target', target]],
-    test: [['test', '--locked', '--target', target, '--all-features']],
+    clean: [['clean', '-p', 'leu-engine', '--target', target]],
+    test: [
+      ['test', '--locked', '--target', target],
+      ['test', '--locked', '--target', target, '--all-features'],
+    ],
     lint: [
       ['fmt', '--all', '--check'],
+      ['clippy', '--locked', '--target', target, '--all-targets', '--', '-D', 'warnings'],
       [
         'clippy',
         '--locked',

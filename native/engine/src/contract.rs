@@ -3,73 +3,24 @@
 //! fails when either file differs from what this module produces.
 
 use super::{
-    ErrorCode, MAX_ERROR_MESSAGE_CHARS, MAX_ID_CHARS, MAX_METHOD_CHARS, MAX_REQUEST_BYTES,
-    MAX_RESPONSE_BYTES, PROTOCOL_VERSION, method_schemas,
+    Envelope, ErrorCode, MAX_REQUEST_BYTES, MAX_RESPONSE_BYTES, PROTOCOL_VERSION, Response,
+    method_schemas,
 };
 use schemars::generate::SchemaSettings;
-use serde_json::{Value, json};
+use serde_json::{Map, Value, json};
 
 pub fn contract() -> Value {
-    let mut generator = SchemaSettings::draft07()
-        .with(|settings| settings.inline_subschemas = true)
-        .into_generator();
-    let methods = method_schemas(&mut generator);
-    let error_code = generator.subschema_for::<ErrorCode>();
-    let id = json!({ "type": "string", "minLength": 1, "maxLength": MAX_ID_CHARS });
-    let version = json!({ "type": "integer", "minimum": 1 });
+    let settings = SchemaSettings::draft07().with(|settings| settings.inline_subschemas = true);
+    let mut requests = settings.clone().into_generator();
+    let mut responses = settings.for_serialize().into_generator();
+    let methods = method_schemas(&mut requests, &mut responses);
+    let error_code = responses.subschema_for::<ErrorCode>();
     let mut contract = json!({
         "protocolVersion": PROTOCOL_VERSION,
         "limits": { "requestBytes": MAX_REQUEST_BYTES, "responseBytes": MAX_RESPONSE_BYTES },
         "errorCode": error_code,
-        "request": {
-            "title": "EngineRequest",
-            "type": "object",
-            "additionalProperties": false,
-            "required": ["protocolVersion", "id", "method", "params"],
-            "properties": {
-                "protocolVersion": version,
-                "id": id,
-                "method": { "type": "string", "minLength": 1, "maxLength": MAX_METHOD_CHARS },
-                "params": { "type": "object" }
-            }
-        },
-        "response": {
-            "title": "EngineResponse",
-            "oneOf": [
-                {
-                    "title": "EngineSuccessResponse",
-                    "type": "object",
-                    "additionalProperties": false,
-                    "required": ["protocolVersion", "id", "ok", "result"],
-                    "properties": {
-                        "protocolVersion": version,
-                        "id": id,
-                        "ok": { "const": true },
-                        "result": { "type": "object" }
-                    }
-                },
-                {
-                    "title": "EngineFailureResponse",
-                    "type": "object",
-                    "additionalProperties": false,
-                    "required": ["protocolVersion", "id", "ok", "error"],
-                    "properties": {
-                        "protocolVersion": version,
-                        "id": { "type": ["string", "null"], "maxLength": MAX_ID_CHARS },
-                        "ok": { "const": false },
-                        "error": {
-                            "type": "object",
-                            "additionalProperties": false,
-                            "required": ["code", "message"],
-                            "properties": {
-                                "code": error_code,
-                                "message": { "type": "string", "maxLength": MAX_ERROR_MESSAGE_CHARS }
-                            }
-                        }
-                    }
-                }
-            ]
-        },
+        "request": requests.subschema_for::<Envelope>(),
+        "response": responses.subschema_for::<Response<Map<String, Value>>>(),
         "methods": methods,
     });
     strip_integer_formats(&mut contract);

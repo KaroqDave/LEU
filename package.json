@@ -30,7 +30,7 @@
     "contracts": "node scripts/contracts.mjs",
     "contracts:check": "node scripts/contracts.mjs --check",
     "typecheck": "tsc --noEmit",
-    "test": "tsx --test tests/*.test.ts",
+    "test": "tsx --test tests/*.test.ts tests/*.test.mjs",
     "smoke": "node scripts/smoke.mjs",
     "format": "prettier --write .",
     "format:check": "prettier --check .",

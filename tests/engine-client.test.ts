@@ -26,6 +26,10 @@ for (const mode of ['ready', 'fragmented']) {
 
 for (const [mode, code] of [
   ['mismatch', 'PROTOCOL_MISMATCH'],
+  ['mismatch-extra', 'PROTOCOL_MISMATCH'],
+  ['mismatch-envelope', 'PROTOCOL_MISMATCH'],
+  ['extra', 'INVALID_RESPONSE'],
+  ['invalid-version', 'INVALID_RESPONSE'],
   ['wrong-id', 'INVALID_RESPONSE'],
   ['invalid', 'INVALID_RESPONSE'],
   ['oversized', 'INVALID_RESPONSE'],
@@ -143,6 +147,44 @@ test('rejects pending requests when the client stops', async () => {
   await new Promise((resolve) => setTimeout(resolve, 30));
   await client.stop();
   await pending;
+});
+
+test('publishes stopped status before shutdown finishes and retains it after stopping', async () => {
+  const statuses: string[] = [];
+  const client = new EngineClient(process.execPath, [peer, 'ready'], 5000, (status) =>
+    statuses.push(status.state),
+  );
+  try {
+    assert.equal((await client.getStatus()).state, 'ready');
+    const stopping = client.stop();
+    assert.deepEqual(statuses, ['ready', 'error']);
+    assert.equal((await client.getStatus()).state, 'error');
+    await stopping;
+    await rejectsWith(client.request('engine.version', {}), 'ENGINE_EXITED');
+    assert.equal((await client.restart()).state, 'ready');
+    assert.deepEqual(statuses, ['ready', 'error', 'ready']);
+    const restarting = client.restart();
+    assert.equal((await client.getStatus()).state, 'error');
+    assert.equal((await restarting).state, 'ready');
+    assert.deepEqual(statuses, ['ready', 'error', 'ready', 'error', 'ready']);
+  } finally {
+    await client.stop();
+  }
+});
+
+test('distinguishes local validation errors from remote invalid requests', async () => {
+  const client = new EngineClient(process.execPath, [peer, 'invalid-request-second']);
+  try {
+    await rejectsWith(
+      client.request('engine.version', { unexpected: true } as never),
+      'INVALID_LOCAL_REQUEST',
+    );
+    assert.equal((await client.getStatus()).state, 'ready');
+    await rejectsWith(client.request('engine.version', {}), 'INVALID_REQUEST');
+    assert.equal((await client.request('engine.version', {})).arch, 'x86_64');
+  } finally {
+    await client.stop();
+  }
 });
 
 for (const [mode, description] of [

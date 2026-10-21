@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use serde_json::{Value, json};
+use serde_json::{Map, Value, json};
 use std::io::{self, BufRead, Read, Write};
 
 #[cfg(feature = "schema")]
@@ -18,6 +18,7 @@ const MAX_ERROR_MESSAGE_CHARS: usize = 256;
 
 #[derive(Clone, Copy, Debug, PartialEq, Serialize)]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[cfg_attr(feature = "schema", schemars(title = "EngineRemoteErrorCode"))]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum ErrorCode {
     InvalidRequest,
@@ -28,10 +29,10 @@ pub enum ErrorCode {
 }
 
 /// Declares each engine method once: wire name, dispatch variant, parameters, and result. It
-/// generates the dispatch enum, the method allowlist, and the method schemas exported to the
-/// TypeScript contract, so these cannot drift apart. `handle_frame` must match every variant.
+/// generates dispatch, the method allowlist, and the exported schemas. Each handler's result
+/// must have the declared type, so the runtime response and its schema cannot drift apart.
 macro_rules! engine_methods {
-    ($($name:literal => $variant:ident($params:ty) -> $result:ty;)+) => {
+    ($($name:literal => $variant:ident($params:ty) -> $result:ty = $handler:path;)+) => {
         #[derive(Deserialize)]
         #[serde(tag = "method", content = "params", deny_unknown_fields)]
         enum Method {
@@ -41,15 +42,27 @@ macro_rules! engine_methods {
         /// Dispatch rejects anything else before parsing params.
         const METHODS: &[&str] = &[$($name),+];
 
+        impl Method {
+            fn dispatch(self, id: String) -> Value {
+                match self {
+                    $(Self::$variant(params) => {
+                        let result: $result = $handler(params);
+                        success(id, result)
+                    },)+
+                }
+            }
+        }
+
         #[cfg(feature = "schema")]
         fn method_schemas(
-            generator: &mut schemars::SchemaGenerator,
+            requests: &mut schemars::SchemaGenerator,
+            responses: &mut schemars::SchemaGenerator,
         ) -> serde_json::Map<String, Value> {
             let mut methods = serde_json::Map::new();
             $(methods.insert($name.to_owned(), json!({
                 "typeName": stringify!($variant),
-                "params": generator.subschema_for::<$params>(),
-                "result": generator.subschema_for::<$result>(),
+                "params": requests.subschema_for::<$params>(),
+                "result": responses.subschema_for::<$result>(),
             }));)+
             methods
         }
@@ -57,17 +70,77 @@ macro_rules! engine_methods {
 }
 
 engine_methods! {
-    "engine.version" => EngineVersion(EmptyParams) -> EngineVersionResult;
+    "engine.version" => EngineVersion(EmptyParams) -> EngineVersionResult = engine_version;
 }
 
 #[derive(Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[cfg_attr(feature = "schema", schemars(title = "EngineRequest"))]
 #[serde(deny_unknown_fields)]
 struct Envelope {
     #[serde(rename = "protocolVersion")]
+    #[cfg_attr(feature = "schema", schemars(range(min = 1)))]
     protocol_version: u64,
+    #[cfg_attr(feature = "schema", schemars(length(min = 1, max = MAX_ID_CHARS)))]
     id: String,
+    #[cfg_attr(feature = "schema", schemars(length(min = 1, max = MAX_METHOD_CHARS)))]
     method: String,
-    params: Value,
+    params: Map<String, Value>,
+}
+
+// A boolean discriminator whose serialized value is fixed by its type.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[cfg_attr(feature = "schema", schemars(with = "bool", extend("const" = OK)))]
+struct ResponseOk<const OK: bool>;
+
+impl<const OK: bool> Serialize for ResponseOk<OK> {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_bool(OK)
+    }
+}
+
+#[derive(Serialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[cfg_attr(feature = "schema", schemars(title = "EngineResponse"))]
+#[serde(untagged)]
+enum Response<R> {
+    Success(SuccessResponse<R>),
+    Failure(FailureResponse),
+}
+
+#[derive(Serialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[cfg_attr(feature = "schema", schemars(title = "EngineSuccessResponse"))]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct SuccessResponse<R> {
+    #[cfg_attr(feature = "schema", schemars(range(min = 1)))]
+    protocol_version: u64,
+    #[cfg_attr(feature = "schema", schemars(length(min = 1, max = MAX_ID_CHARS)))]
+    id: String,
+    ok: ResponseOk<true>,
+    result: R,
+}
+
+#[derive(Serialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[cfg_attr(feature = "schema", schemars(title = "EngineFailureResponse"))]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct FailureResponse {
+    #[cfg_attr(feature = "schema", schemars(range(min = 1)))]
+    protocol_version: u64,
+    #[cfg_attr(feature = "schema", schemars(length(max = MAX_ID_CHARS)))]
+    id: Option<String>,
+    ok: ResponseOk<false>,
+    error: RemoteError,
+}
+
+#[derive(Serialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[serde(deny_unknown_fields)]
+struct RemoteError {
+    code: ErrorCode,
+    #[cfg_attr(feature = "schema", schemars(length(max = MAX_ERROR_MESSAGE_CHARS)))]
+    message: String,
 }
 
 #[derive(Deserialize)]
@@ -95,68 +168,88 @@ fn engine_version(_: EmptyParams) -> EngineVersionResult {
     }
 }
 
-fn failure(id: Value, code: ErrorCode, message: &str) -> Value {
+fn failure(id: Option<String>, code: ErrorCode, message: &str) -> Value {
     debug_assert!(message.chars().count() <= MAX_ERROR_MESSAGE_CHARS);
-    json!({
-        "protocolVersion": PROTOCOL_VERSION,
-        "id": id,
-        "ok": false,
-        "error": { "code": code, "message": message }
-    })
+    serde_json::to_value(Response::<Map<String, Value>>::Failure(FailureResponse {
+        protocol_version: PROTOCOL_VERSION,
+        id,
+        ok: ResponseOk,
+        error: RemoteError {
+            code,
+            message: message.to_owned(),
+        },
+    }))
+    .expect("failure response is serializable")
 }
 
-fn success(id: Value, result: impl Serialize) -> Value {
-    json!({
-        "protocolVersion": PROTOCOL_VERSION,
-        "id": id,
-        "ok": true,
-        "result": result
-    })
+fn success(id: String, result: impl Serialize) -> Value {
+    serde_json::to_value(Response::Success(SuccessResponse {
+        protocol_version: PROTOCOL_VERSION,
+        id,
+        ok: ResponseOk,
+        result,
+    }))
+    .expect("method result is serializable")
 }
 
 pub fn handle_frame(bytes: &[u8]) -> Value {
-    let envelope = match serde_json::from_slice::<Envelope>(bytes) {
-        Ok(envelope)
-            if !envelope.id.is_empty()
-                && envelope.id.chars().count() <= MAX_ID_CHARS
-                && !envelope.method.is_empty()
-                && envelope.method.chars().count() <= MAX_METHOD_CHARS
-                && envelope.params.is_object() =>
-        {
-            envelope
-        }
-        _ => {
-            return failure(
-                Value::Null,
-                ErrorCode::InvalidRequest,
-                "Invalid request envelope.",
-            );
-        }
+    // Inspect the version without assuming a future protocol's envelope shape.
+    let value: Value = match serde_json::from_slice(bytes) {
+        Ok(value) => value,
+        Err(_) => return failure(None, ErrorCode::InvalidRequest, "Invalid request envelope."),
     };
-
-    let id = Value::String(envelope.id);
-    if envelope.protocol_version != PROTOCOL_VERSION {
+    if let Some(version) = value.get("protocolVersion").and_then(Value::as_u64)
+        && version != PROTOCOL_VERSION
+    {
+        let id = value
+            .get("id")
+            .and_then(Value::as_str)
+            .filter(|id| !id.is_empty() && id.chars().count() <= MAX_ID_CHARS)
+            .map(str::to_owned);
         return failure(
             id,
             ErrorCode::ProtocolMismatch,
             "Unsupported protocol version.",
         );
     }
+
+    let envelope = match serde_json::from_slice::<Envelope>(bytes) {
+        Ok(envelope)
+            if !envelope.id.is_empty()
+                && envelope.id.chars().count() <= MAX_ID_CHARS
+                && !envelope.method.is_empty()
+                && envelope.method.chars().count() <= MAX_METHOD_CHARS =>
+        {
+            envelope
+        }
+        _ => {
+            return failure(None, ErrorCode::InvalidRequest, "Invalid request envelope.");
+        }
+    };
+
+    debug_assert_eq!(envelope.protocol_version, PROTOCOL_VERSION);
+    let id = envelope.id;
     if !METHODS.contains(&envelope.method.as_str()) {
-        return failure(id, ErrorCode::UnknownMethod, "Unsupported engine method.");
+        return failure(
+            Some(id),
+            ErrorCode::UnknownMethod,
+            "Unsupported engine method.",
+        );
     }
     let method = match serde_json::from_value::<Method>(
         json!({ "method": envelope.method, "params": envelope.params }),
     ) {
         Ok(method) => method,
         Err(_) => {
-            return failure(id, ErrorCode::InvalidRequest, "Invalid method parameters.");
+            return failure(
+                Some(id),
+                ErrorCode::InvalidRequest,
+                "Invalid method parameters.",
+            );
         }
     };
 
-    match method {
-        Method::EngineVersion(params) => success(id, engine_version(params)),
-    }
+    method.dispatch(id)
 }
 
 /// Writes one response line, replacing it with a failure when it would exceed `limit`.
@@ -164,7 +257,7 @@ fn write_response(output: &mut impl Write, response: &Value, limit: usize) -> io
     let mut line = serde_json::to_vec(response)?;
     if line.len() + 1 > limit {
         line = serde_json::to_vec(&failure(
-            response["id"].clone(),
+            response["id"].as_str().map(str::to_owned),
             ErrorCode::ResponseTooLarge,
             "Response exceeds the protocol limit.",
         ))?;
@@ -187,7 +280,7 @@ pub fn serve(mut input: impl BufRead, mut output: impl Write) -> io::Result<()> 
         let oversized = frame.len() > MAX_REQUEST_BYTES;
         let response = if oversized {
             failure(
-                Value::Null,
+                None,
                 ErrorCode::FrameTooLarge,
                 &format!("Request exceeds {MAX_REQUEST_BYTES} bytes."),
             )
@@ -230,6 +323,51 @@ mod tests {
             handle_frame(input.to_string().as_bytes())["error"]["code"],
             "PROTOCOL_MISMATCH"
         );
+    }
+
+    #[test]
+    fn checks_version_before_assuming_the_envelope_shape() {
+        for input in [
+            json!({ "protocolVersion": 2, "id": "future", "extra": true }),
+            json!({ "protocolVersion": 2, "params": [], "futurePayload": {} }),
+            json!({ "protocolVersion": 2, "id": "x".repeat(MAX_ID_CHARS + 1) }),
+        ] {
+            let response = handle_frame(input.to_string().as_bytes());
+            assert_eq!(response["error"]["code"], "PROTOCOL_MISMATCH");
+            assert_eq!(
+                response["id"],
+                if input["id"] == "future" {
+                    json!("future")
+                } else {
+                    Value::Null
+                }
+            );
+        }
+        for version in [json!("2"), json!(-1), json!(1.5), Value::Null] {
+            let mut input = request();
+            input["protocolVersion"] = version;
+            assert_eq!(
+                handle_frame(input.to_string().as_bytes())["error"]["code"],
+                "INVALID_REQUEST"
+            );
+        }
+    }
+
+    #[test]
+    fn bounds_request_identifiers_and_method_names() {
+        for (field, limit) in [("id", MAX_ID_CHARS), ("method", MAX_METHOD_CHARS)] {
+            for value in [String::new(), "ü".repeat(limit + 1)] {
+                let mut input = request();
+                input[field] = json!(value);
+                assert_eq!(
+                    handle_frame(input.to_string().as_bytes())["error"]["code"],
+                    "INVALID_REQUEST"
+                );
+            }
+        }
+        let mut input = request();
+        input["id"] = json!("ü".repeat(MAX_ID_CHARS));
+        assert_eq!(handle_frame(input.to_string().as_bytes())["ok"], true);
     }
 
     #[test]
@@ -283,7 +421,7 @@ mod tests {
 
     #[test]
     fn replaces_oversized_responses_with_a_failure() {
-        let response = success(json!("big"), json!({ "data": "x".repeat(400) }));
+        let response = success("big".to_owned(), json!({ "data": "x".repeat(400) }));
         let mut output = Vec::new();
         write_response(&mut output, &response, 256).unwrap();
         assert!(output.len() <= 256 && output.ends_with(b"\n"));
@@ -294,7 +432,7 @@ mod tests {
 
     #[test]
     fn response_limit_counts_the_newline() {
-        let response = success(json!("edge"), json!({}));
+        let response = success("edge".to_owned(), json!({}));
         let size = serde_json::to_vec(&response).unwrap().len();
         let mut output = Vec::new();
         write_response(&mut output, &response, size + 1).unwrap();

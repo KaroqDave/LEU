@@ -2,6 +2,7 @@ export type EngineErrorCode =
   | 'MISSING_HELPER'
   | 'PROTOCOL_MISMATCH'
   | 'INVALID_RESPONSE'
+  | 'INVALID_LOCAL_REQUEST'
   | 'ENGINE_EXITED'
   | 'TIMEOUT'
   | 'START_FAILED';

@@ -39,7 +39,7 @@ export interface EngineFailureResponse {
   protocolVersion: number;
 }
 
-export interface EngineVersionParams {}
+export type EngineVersionParams = Record<string, never>;
 
 export interface EngineVersionResult {
   arch: string;
