@@ -21,6 +21,21 @@ Open work from the October 2026 project review. Milestone scope and acceptance c
 - [ ] Add ESLint with `eslint-plugin-react-hooks`.
 - [ ] Capture the last few KB of helper stderr instead of discarding it (`child.stderr.resume()`), for crash diagnostics.
 
+## Protocol review follow-ups
+
+From the 2026-10-21 code review of the request multiplexing and contract generation commits.
+
+- [ ] `scripts/contracts.mjs` parses the generator output on the child's `exit` event, which can fire before stdout has drained. A truncated read makes `JSON.parse` throw inside the event handler, outside the `try`, so `pnpm contracts:check` can fail intermittently. Wait for `close` and reject on parse errors.
+- [ ] Check the protocol version before strict envelope validation, on both sides. `src/main/engine-client.ts` runs `isEngineResponse` (`additionalProperties: false`) first, and the Rust `Envelope` uses `deny_unknown_fields` before comparing versions. A future envelope change is reported as `INVALID_RESPONSE` or `INVALID_REQUEST` instead of `PROTOCOL_MISMATCH`.
+- [ ] `engine_methods!` in `native/engine/src/lib.rs` declares `-> $result` but does not tie it to the handler's return type, because `success()` takes `impl Serialize`. Let the macro generate the dispatch arms so the exported result schema cannot drift from what is sent.
+- [ ] `EngineClient.stop()` leaves `status` as `ready` after stopping a connected helper. During `restart()`, `leu:engine-status` returns a stale `ready` while the old helper shuts down, and no status event is emitted.
+- [ ] The Smart App Control hint in `CONTRIBUTING.md` suggests `cargo clean -p leu-engine` without `--target x86_64-pc-windows-msvc`. The scripts build into `target/x86_64-pc-windows-msvc`, so the blocked binary is probably not removed. Verify, and mention the repo-local `.tools/cargo` toolchain.
+- [ ] The generated `EngineVersionParams` is `{}`, which accepts any non-nullish value in TypeScript, so bad params only fail at runtime. Generate `Record<string, never>` for closed empty-object schemas.
+- [ ] Client-side request rejections in `EngineClient.send()` use the remote code `INVALID_REQUEST`, so callers cannot tell them from engine-reported errors. Add a local code to `EngineErrorCode`.
+- [ ] Native tests and Clippy run only with `--all-features`, so the shipped default-feature build is never linted or tested. Add a default-feature Clippy (and test) pass in `scripts/native.mjs`.
+- [ ] `scripts/contracts.mjs` titles the error-code type through the hard-coded path `response.oneOf[1].properties.error.properties.code`. Set the title in Rust instead, for example `#[schemars(title = "EngineRemoteErrorCode")]` on `ErrorCode`.
+- [ ] The request and response envelope schemas in `native/engine/src/contract.rs` are hand-written and duplicate the rules in `Envelope`, `handle_frame`, `success`, and `failure`. Derive them from typed request and response structs so the envelope is generated too, not only the method payloads.
+
 ## M3 design (no implementation yet)
 
 - [x] Document server-pushed events (progress, phases) and request cancellation in the protocol. The engine is currently single-threaded and synchronous, so a running scan cannot receive `cancelScan`.
