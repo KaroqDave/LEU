@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { getDemoInventory } from '../src/main/fixtures';
-import { filterPrograms, formatSize } from '../src/renderer/programs';
+import { filterPrograms, formatSize, getSizeEstimate } from '../src/renderer/programs';
 
 test('searches by publisher within the chosen installation scope', () => {
   const programs = getDemoInventory().programs;
@@ -13,4 +13,29 @@ test('keeps unknown sizes distinct and sorts them after known sizes', () => {
   assert.equal(sorted.at(-1)?.reportedSizeBytes, null);
   assert.equal(formatSize(null), 'Unknown');
   assert.equal(formatSize(0), '0 MiB');
+});
+
+test('reports size coverage and sums only known installer estimates', () => {
+  const programs = getDemoInventory().programs;
+  assert.deepEqual(getSizeEstimate(programs), {
+    reportedSizeBytes: (410 + 289 + 267 + 645 + 6 + 342 + 1240) * 1024 ** 2,
+    knownSizeCount: 7,
+  });
+  assert.deepEqual(
+    getSizeEstimate(programs.map((program) => ({ ...program, reportedSizeBytes: 0 }))),
+    {
+      reportedSizeBytes: 0,
+      knownSizeCount: programs.length,
+    },
+  );
+});
+
+test('does not invent a zero size for an empty inventory or missing installer estimates', () => {
+  assert.deepEqual(getSizeEstimate([]), { reportedSizeBytes: null, knownSizeCount: 0 });
+  assert.deepEqual(
+    getSizeEstimate(
+      getDemoInventory().programs.map((program) => ({ ...program, reportedSizeBytes: null })),
+    ),
+    { reportedSizeBytes: null, knownSizeCount: 0 },
+  );
 });

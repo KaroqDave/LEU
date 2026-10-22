@@ -50,7 +50,7 @@ pnpm package
 pnpm smoke
 ```
 
-Individual commands are `pnpm typecheck`, `pnpm test`, `pnpm test:native`, `pnpm lint:native`, and `pnpm format:check`. Use `pnpm format` for JavaScript, TypeScript, CSS, and supported configuration files; use `cargo fmt --all` for Rust. Build the native helper with `pnpm build:native`.
+Individual commands are `pnpm typecheck`, `pnpm lint`, `pnpm test`, `pnpm test:native`, `pnpm lint:native`, and `pnpm format:check`. ESLint checks application code, scripts, and tests, including the recommended TypeScript and React Hooks rules, and fails on warnings. Generated protocol types and local build artifacts are excluded. Use `pnpm format` for JavaScript, TypeScript, CSS, and supported configuration files; use `cargo fmt --all` for Rust. Build the native helper with `pnpm build:native`.
 
 TypeScript tests cover message validation, framing and size limits, request multiplexing, helper startup and failure behavior, resource paths, and sample search behavior. Rust tests cover the engine's framing, request and response limits, request validation, method allowlist, version mismatch, and EOF behavior. Keep the shared request fixture compatible with both implementations.
 

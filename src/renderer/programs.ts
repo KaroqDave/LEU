@@ -25,3 +25,21 @@ export function formatSize(bytes: number | null): string {
   if (bytes >= 1024 ** 3) return `${(bytes / 1024 ** 3).toFixed(2)} GiB`;
   return `${Math.round(bytes / 1024 ** 2)} MiB`;
 }
+
+export function getSizeEstimate(programs: readonly Program[]): {
+  reportedSizeBytes: number | null;
+  knownSizeCount: number;
+} {
+  let total = 0;
+  let knownSizeCount = 0;
+  for (const program of programs) {
+    if (program.reportedSizeBytes !== null) {
+      total += program.reportedSizeBytes;
+      knownSizeCount++;
+    }
+  }
+  return {
+    reportedSizeBytes: knownSizeCount === 0 ? null : total,
+    knownSizeCount,
+  };
+}

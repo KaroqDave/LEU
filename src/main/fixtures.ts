@@ -14,8 +14,6 @@ export function getDemoInventory(): Inventory {
         reportedSizeBytes: 410 * 1024 ** 2,
         installedOn: '2026-09-14',
         installLocation: 'C:\\Users\\Demo\\AppData\\Local\\Programs\\Microsoft VS Code',
-        initials: 'VS',
-        color: 'blue',
       },
       {
         id: 'demo-figma',
@@ -26,8 +24,6 @@ export function getDemoInventory(): Inventory {
         reportedSizeBytes: 289 * 1024 ** 2,
         installedOn: '2026-09-20',
         installLocation: 'C:\\Users\\Demo\\AppData\\Local\\Figma',
-        initials: 'Fi',
-        color: 'purple',
       },
       {
         id: 'demo-firefox',
@@ -38,8 +34,6 @@ export function getDemoInventory(): Inventory {
         reportedSizeBytes: 267 * 1024 ** 2,
         installedOn: '2026-10-02',
         installLocation: 'C:\\Program Files\\Mozilla Firefox',
-        initials: 'Fx',
-        color: 'orange',
       },
       {
         id: 'demo-obs',
@@ -50,8 +44,6 @@ export function getDemoInventory(): Inventory {
         reportedSizeBytes: 645 * 1024 ** 2,
         installedOn: '2026-09-08',
         installLocation: 'C:\\Program Files\\obs-studio',
-        initials: 'OB',
-        color: 'slate',
       },
       {
         id: 'demo-sevenzip',
@@ -62,8 +54,6 @@ export function getDemoInventory(): Inventory {
         reportedSizeBytes: 6 * 1024 ** 2,
         installedOn: '2026-08-30',
         installLocation: 'C:\\Program Files\\7-Zip',
-        initials: '7z',
-        color: 'gray',
       },
       {
         id: 'demo-spotify',
@@ -74,8 +64,6 @@ export function getDemoInventory(): Inventory {
         reportedSizeBytes: 342 * 1024 ** 2,
         installedOn: '2026-10-05',
         installLocation: 'C:\\Users\\Demo\\AppData\\Roaming\\Spotify',
-        initials: 'Sp',
-        color: 'green',
       },
       {
         id: 'demo-blender',
@@ -86,8 +74,6 @@ export function getDemoInventory(): Inventory {
         reportedSizeBytes: 1240 * 1024 ** 2,
         installedOn: '2026-09-01',
         installLocation: 'C:\\Program Files\\Blender Foundation\\Blender 4.5',
-        initials: 'Bl',
-        color: 'orange',
       },
       {
         id: 'demo-notepad',
@@ -98,8 +84,6 @@ export function getDemoInventory(): Inventory {
         reportedSizeBytes: null,
         installedOn: null,
         installLocation: 'C:\\Program Files\\Notepad++',
-        initials: 'N+',
-        color: 'green',
       },
     ],
   };

@@ -33,8 +33,6 @@ export interface Program {
   reportedSizeBytes: number | null;
   installedOn: string | null;
   installLocation: string;
-  initials: string;
-  color: string;
 }
 
 export interface Inventory {

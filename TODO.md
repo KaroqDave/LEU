@@ -11,14 +11,14 @@ Open work from the October 2026 project review. Milestone scope and acceptance c
 
 ## M1 preparation
 
-- [ ] Remove demo-specific assumptions from the UI:
-  - [ ] The hard-coded `"Installer estimates · 1 size unknown"` stat detail in `src/renderer/App.tsx`.
-  - [ ] The default `selectedId` of `'demo-code'`.
-  - [ ] When a filter hides the selected program, the details panel silently switches to the first visible row. Decide the intended behavior.
-- [ ] Reconsider the "Reported size" total. Summed registry `EstimatedSize` values are often wrong or missing. Drop the total, or label it clearly as a partial installer estimate.
-- [ ] Move `initials` and `color` out of the `Program` contract. They are presentation details and belong in the renderer.
-- [ ] Split `App.tsx` (578 lines) into per-view components before adding loading, refresh, and partial error states.
-- [ ] Add ESLint with `eslint-plugin-react-hooks`.
+- [x] Remove demo-specific assumptions from the UI:
+  - [x] Derive size coverage from the inventory instead of hard-coding the unknown-size count.
+  - [x] Start without a selected application instead of selecting `'demo-code'`.
+  - [x] Preserve the selected application's details when filters hide it, with an explicit note. Refresh keeps an existing selection and clears a disappeared record.
+- [x] Label the size total as a "Partial size estimate" and show how many apps report a size. Empty inventories and entirely missing estimates display "Unknown" instead of a fabricated zero.
+- [x] Move `initials` and `color` out of the `Program` contract. The renderer derives placeholder icons from the application name.
+- [x] Split `App.tsx` into Installed apps, Activity, and Settings views and shared display components before adding loading and partial error states.
+- [x] Add ESLint with `eslint-plugin-react-hooks`. `pnpm lint` checks application code, scripts, and tests; `pnpm check` and CI enforce it with no warnings allowed.
 - [ ] Design optional, bounded helper diagnostics with a user preview and redaction before export. Helper stderr is currently discarded; preserve the privacy behavior in [PRIVACY.md](PRIVACY.md).
 
 ## Protocol review follow-ups

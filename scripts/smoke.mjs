@@ -228,6 +228,9 @@ try {
   await page.getByRole('button', { name: /Engine connected/ }).waitFor();
   const readyMs = Math.round(performance.now() - started);
   assert.equal(await page.locator('.program-choice').count(), 8);
+  assert.equal(await page.locator('.program-choice[aria-pressed="true"]').count(), 0);
+  await page.getByText('Select an application to view its details.', { exact: true }).waitFor();
+  await page.getByText('7 of 8 apps report a size', { exact: true }).waitFor();
   assert.equal(await page.evaluate(() => typeof window.require), 'undefined');
   assert.equal(await page.evaluate(() => typeof window.process), 'undefined');
   assert.deepEqual(await page.evaluate(() => Object.keys(window.leu).sort()), [
@@ -240,16 +243,37 @@ try {
   await verifyNetworkPolicy(page);
   await page.getByRole('button', { name: /Engine connected/ }).waitFor();
   await page.setViewportSize({ width: 1380, height: 1060 });
-  await page.locator('.program-choice').filter({ hasText: 'Figma' }).click();
+  const figma = page.locator('.program-choice').filter({ hasText: 'Figma' });
+  await figma.focus();
+  await page.keyboard.press('Enter');
+  assert.equal(await figma.getAttribute('aria-pressed'), 'true');
+  await page.locator('.details-panel h2').filter({ hasText: 'Figma' }).waitFor();
   await page.screenshot({ path: path.join(output, 'installed-apps-light.png'), scale: 'css' });
   await page.emulateMedia({ colorScheme: 'dark' });
   await page.screenshot({ path: path.join(output, 'installed-apps-dark.png'), scale: 'css' });
   await page.emulateMedia({ colorScheme: 'light' });
   await page.getByRole('textbox', { name: 'Search applications' }).fill('Mozilla');
   assert.equal(await page.locator('.program-choice').count(), 1);
+  await page.locator('.details-panel h2').filter({ hasText: 'Figma' }).waitFor();
+  await page
+    .getByText('This application is hidden by the current filters.', { exact: true })
+    .waitFor();
+  assert.equal(await page.locator('.program-choice[aria-pressed="true"]').count(), 0);
+  await page.getByRole('button', { name: 'System wide', exact: true }).click();
+  await page.locator('.details-panel h2').filter({ hasText: 'Figma' }).waitFor();
   await page.getByRole('textbox', { name: 'Search applications' }).fill('missing-application');
   await page.getByRole('heading', { name: 'No applications found' }).waitFor();
   await page.getByRole('button', { name: 'Clear filters' }).click();
+  assert.equal(await figma.getAttribute('aria-pressed'), 'true');
+  assert.equal(
+    await page
+      .getByText('This application is hidden by the current filters.', { exact: true })
+      .count(),
+    0,
+  );
+  await page.getByRole('button', { name: 'Refresh list', exact: true }).click();
+  await page.getByRole('status').filter({ hasText: 'Sample list refreshed.' }).waitFor();
+  assert.equal(await figma.getAttribute('aria-pressed'), 'true');
   await page.getByRole('button', { name: 'Settings', exact: true }).click();
   await page.locator('.connection-badge').filter({ hasText: 'Connected' }).waitFor();
   await page.getByRole('button', { name: 'Reconnect engine' }).click();
@@ -258,6 +282,7 @@ try {
   await page.getByRole('button', { name: 'Activity', exact: true }).click();
   await page.getByRole('heading', { name: 'A fresh start.' }).waitFor();
   await page.getByRole('button', { name: /Explore your applications/ }).click();
+  assert.equal(await figma.getAttribute('aria-pressed'), 'true');
   assert.equal(
     await page.getByRole('button', { name: 'Uninstall application' }).isDisabled(),
     true,
