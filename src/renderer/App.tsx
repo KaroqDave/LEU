@@ -1,22 +1,30 @@
-import { useEffect, useState } from 'react';
-import type { AppInfo, Program } from '../contracts/bridge';
-import { Icon, Logo } from './icons';
+import { useEffect, useReducer, useRef, useState } from 'react';
+import type { AppInfo } from '../contracts/bridge';
+import { Icon } from './icons';
+import { Logo } from './components/Logo';
 import type { Connection } from './types';
 import { InstalledApps } from './views/InstalledApps';
 import { Activity } from './views/Activity';
 import { Settings } from './views/Settings';
+import { createInventoryState, inventoryReducer } from './inventory';
+import { isListed } from './programs';
 
 type View = 'apps' | 'activity' | 'settings';
 export function App() {
   const [view, setView] = useState<View>('apps');
-  const [programs, setPrograms] = useState<Program[]>([]);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [inventoryState, dispatchInventory] = useReducer(
+    inventoryReducer,
+    Boolean(window.leu),
+    createInventoryState,
+  );
+  const inventoryRequest = useRef(0);
+  const { inventory, selectedId, loading, error: inventoryError, notice } = inventoryState;
+  const programs = inventory?.programs ?? [];
   const [query, setQuery] = useState('');
   const [scope, setScope] = useState('all');
   const [sort, setSort] = useState('name');
   const [engine, setEngine] = useState<Connection>({ state: 'connecting' });
   const [app, setApp] = useState<AppInfo>();
-  const [notice, setNotice] = useState('');
   const [loadError, setLoadError] = useState(() =>
     window.leu ? '' : 'The desktop bridge could not load. Restart LEU.',
   );
@@ -26,14 +34,21 @@ export function App() {
       return;
     }
     const unsubscribe = window.leu.onEngineStatus(setEngine);
+    let active = true;
+    const request = ++inventoryRequest.current;
     window.leu
       .getAppInfo()
       .then(setApp)
       .catch(() => setLoadError('Application details could not load.'));
     window.leu
       .listPrograms()
-      .then((inventory) => setPrograms(inventory.programs))
-      .catch(() => setLoadError('Sample programs could not load.'));
+      .then((inventory) => {
+        if (active && request === inventoryRequest.current)
+          dispatchInventory({ type: 'received', inventory });
+      })
+      .catch(() => {
+        if (active && request === inventoryRequest.current) dispatchInventory({ type: 'failed' });
+      });
     window.leu
       .getEngineStatus()
       .then(setEngine)
@@ -44,13 +59,18 @@ export function App() {
           message: 'The helper connection could not be established.',
         }),
       );
-    return unsubscribe;
+    return () => {
+      active = false;
+      unsubscribe();
+    };
   }, []);
 
   async function reconnect() {
     setEngine({ state: 'connecting' });
     try {
-      setEngine(await window.leu.restartEngine());
+      const status = await window.leu.restartEngine();
+      setEngine(status);
+      if (status.state === 'ready') await refresh();
     } catch {
       setEngine({
         state: 'error',
@@ -61,13 +81,14 @@ export function App() {
   }
 
   async function refresh() {
+    const request = ++inventoryRequest.current;
+    dispatchInventory({ type: 'request' });
     try {
       const inventory = await window.leu.listPrograms();
-      setPrograms(inventory.programs);
-      setSelectedId((id) => (inventory.programs.some((program) => program.id === id) ? id : null));
-      setNotice('Sample list refreshed. Live Windows discovery arrives in M1.');
+      if (request === inventoryRequest.current)
+        dispatchInventory({ type: 'received', inventory, refreshed: true });
     } catch {
-      setLoadError('The sample list could not be refreshed.');
+      if (request === inventoryRequest.current) dispatchInventory({ type: 'failed' });
     }
   }
 
@@ -100,7 +121,11 @@ export function App() {
             >
               <Icon name={item.icon} />
               <span>{item.label}</span>
-              {item.id === 'apps' && <span className="nav-count">{programs.length}</span>}
+              {item.id === 'apps' && (
+                <span className="nav-count">
+                  {programs.filter((program) => isListed(program)).length}
+                </span>
+              )}
             </button>
           ))}
         </nav>
@@ -136,7 +161,7 @@ export function App() {
             <Icon name="chevron" size={14} />
           </button>
           <div className="sidebar-footer">
-            <span>M0 · Foundation</span>
+            <span>M1 · Inventory preview</span>
             <span>v{app?.version ?? '0.1.0'}</span>
           </div>
         </div>
@@ -164,8 +189,11 @@ export function App() {
           {view === 'apps' && (
             <InstalledApps
               programs={programs}
+              inventory={inventory}
+              loading={loading}
+              error={inventoryError}
               selectedId={selectedId}
-              setSelectedId={setSelectedId}
+              setSelectedId={(id) => dispatchInventory({ type: 'select', id })}
               query={query}
               setQuery={setQuery}
               scope={scope}

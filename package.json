@@ -33,6 +33,7 @@
     "typecheck": "tsc --noEmit",
     "test": "tsx --test tests/*.test.ts tests/*.test.mjs",
     "smoke": "node scripts/smoke.mjs",
+    "smoke:inventory": "node scripts/inventory-smoke.mjs",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "check": "pnpm contracts:check && pnpm typecheck && pnpm lint && pnpm test && pnpm test:native && pnpm lint:native && pnpm format:check"

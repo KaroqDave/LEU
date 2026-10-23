@@ -1,5 +1,4 @@
 import paths from '../../assets/branding/ui-icons.json';
-import brandIcon from '../../assets/branding/leu-icon.svg';
 
 export type IconName = keyof typeof paths;
 
@@ -20,8 +19,4 @@ export function Icon({ name, size = 20 }: { name: IconName; size?: number }) {
       <path d={paths[name]} />
     </svg>
   );
-}
-
-export function Logo({ size = 42 }: { size?: number }) {
-  return <img aria-hidden="true" src={brandIcon} alt="" width={size} height={size} />;
 }

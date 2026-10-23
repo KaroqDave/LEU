@@ -20,6 +20,9 @@ let engine: EngineClient;
 let quitting = false;
 
 const productionOrigin = 'leu://app';
+// A missed deadline restarts the helper, so allow slow or security-hooked registries to finish
+// a bounded read of up to 4,096 registrations rather than failing the whole connection.
+const INVENTORY_TIMEOUT_MS = 60_000;
 const csp =
   "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'none'; object-src 'none'; base-uri 'none'; frame-src 'none'";
 
@@ -115,7 +118,13 @@ app
       }),
       'leu:engine-status': () => engine.getStatus(),
       'leu:engine-restart': () => engine.restart(),
-      'leu:list-programs': getDemoInventory,
+      'leu:list-programs': () =>
+        app.commandLine.hasSwitch('demo-inventory')
+          ? getDemoInventory()
+          : engine.request('inventory.list', {}, INVENTORY_TIMEOUT_MS).then((inventory) => ({
+              ...inventory,
+              source: 'windows' as const,
+            })),
     };
     for (const [channel, handler] of Object.entries(handlers)) {
       ipcMain.handle(channel, (event, ...args: unknown[]) => {

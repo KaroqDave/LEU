@@ -2,6 +2,8 @@ use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value, json};
 use std::io::{self, BufRead, Read, Write};
 
+mod inventory;
+
 #[cfg(feature = "schema")]
 mod contract;
 #[cfg(feature = "schema")]
@@ -71,6 +73,7 @@ macro_rules! engine_methods {
 
 engine_methods! {
     "engine.version" => EngineVersion(EmptyParams) -> EngineVersionResult = engine_version;
+    "inventory.list" => InventoryList(EmptyParams) -> inventory::InventoryResult = inventory::list;
 }
 
 #[derive(Deserialize)]

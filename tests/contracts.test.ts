@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import fixture from './fixtures/version-request.json';
+import { getDemoInventory } from '../src/main/fixtures';
 import {
   isEngineMethod,
   isEngineRequest,
@@ -65,4 +66,60 @@ test('keeps response IDs required and nullable only on failures', () => {
   assert.equal(isEngineResponse({ ...failure, ok: true }), false);
   assert.equal(isEngineResponse({ ...failure, error: { ...failure.error, extra: true } }), false);
   assert.equal(isEngineResponse({ protocolVersion: 1, id: null, ok: true, result: {} }), false);
+});
+
+test('validates inventory records, null metadata, partial issues, and closed read-only parameters', () => {
+  const { source: _source, ...inventory } = getDemoInventory();
+  assert.equal(isEngineRequest({ ...fixture, method: 'inventory.list', params: {} }), true);
+  assert.equal(
+    isEngineRequest({ ...fixture, method: 'inventory.list', params: { path: 'C:\\' } }),
+    false,
+  );
+  assert.equal(isEngineResult('inventory.list', inventory), true);
+  const program = inventory.programs[0]!;
+  const nullable = {
+    ...program,
+    publisher: null,
+    version: null,
+    installLocation: null,
+    reportedInstallDate: null,
+    reportedSizeBytes: null,
+  };
+  assert.equal(isEngineResult('inventory.list', { ...inventory, programs: [nullable] }), true);
+  assert.equal(
+    isEngineResult('inventory.list', {
+      ...inventory,
+      status: 'partial',
+      issues: [{ source: program.source, code: 'ACCESS_DENIED', message: 'Fixture.' }],
+    }),
+    true,
+  );
+  assert.equal(
+    isEngineResult('inventory.list', {
+      ...inventory,
+      programs: [{ ...program, scope: 'administrator' }],
+    }),
+    false,
+  );
+  assert.equal(
+    isEngineResult('inventory.list', {
+      ...inventory,
+      programs: [{ ...program, reportedSizeBytes: -1 }],
+    }),
+    false,
+  );
+  assert.equal(
+    isEngineResult('inventory.list', {
+      ...inventory,
+      programs: [{ ...program, reportedSizeBytes: 2 ** 53 }],
+    }),
+    false,
+  );
+  assert.equal(
+    isEngineResult('inventory.list', {
+      ...inventory,
+      programs: [{ ...program, source: { ...program.source, view: 'arm' } }],
+    }),
+    false,
+  );
 });

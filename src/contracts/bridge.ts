@@ -1,3 +1,5 @@
+import type { EngineMethods } from './generated';
+
 export type EngineErrorCode =
   | 'MISSING_HELPER'
   | 'PROTOCOL_MISMATCH'
@@ -24,21 +26,9 @@ export interface AppInfo {
   packaged: boolean;
 }
 
-export interface Program {
-  id: string;
-  name: string;
-  publisher: string;
-  version: string;
-  scope: 'user' | 'machine';
-  reportedSizeBytes: number | null;
-  installedOn: string | null;
-  installLocation: string;
-}
-
-export interface Inventory {
-  source: 'demo';
-  programs: Program[];
-}
+export type NativeInventory = EngineMethods['inventory.list']['result'];
+export type Program = NativeInventory['programs'][number];
+export type Inventory = NativeInventory & { source: 'windows' | 'demo' };
 
 export interface LeuBridge {
   getAppInfo(): Promise<AppInfo>;

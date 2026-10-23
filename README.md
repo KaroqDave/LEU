@@ -17,15 +17,15 @@ LEU is an open source Windows uninstaller project with a modern Electron interfa
 
 ![LEU's dark Installed apps screen showing sample inventory, search, and application details](docs/images/installed-apps-dark.png)
 
-_Development preview with sample data. Real Windows discovery, uninstall, and cleanup are not available yet. [Screenshot provenance and licensing](docs/images/README.md)._
+_Synthetic sample capture. Normal launches now discover real Windows desktop registrations. Uninstall and cleanup remain unavailable. [Screenshot provenance and licensing](docs/images/README.md)._
 
 The central product principle is **explain every cleanup action before making it**. A useful result tells the user what LEU found, why it belongs to the selected program, and what keeping or removing it means.
 
 ## Project status
 
-M0 now has a runnable Electron application with TypeScript, React, and a Rust helper. Installed apps, Activity, and Settings are available, with search, filtering, program details, system light and dark themes, and a live helper connection indicator.
+The M1 inventory preview discovers desktop programs through the local Rust helper. It reads current-user registrations and both machine registry views, preserves each registration's provenance, and supports search, sorting, scope filters, keyboard selection, refresh, and partial source warnings. System components and update registrations are hidden by default and can be included for inspection.
 
-The inventory is clearly labeled sample data. Real Windows discovery starts in M1; uninstall and cleanup actions are unavailable in this foundation build.
+Missing metadata stays unknown. Size is a partial installer estimate, and the reported date may reflect installation, repair, or update. Microsoft Store packages and unregistered portable apps are outside this preview. Real icons and comparison against known installations in disposable Windows VMs remain M1 follow-ups. Uninstall and cleanup actions are unavailable.
 
 Confirmed direction:
 
@@ -52,9 +52,12 @@ To build and verify a standalone app:
 pnpm check
 pnpm package
 pnpm smoke
+pnpm smoke:inventory
 ```
 
 The executable is `out/LEU-win32-x64/LEU.exe`. `pnpm make` produces a Windows zip. See [CONTRIBUTING.md](CONTRIBUTING.md) for toolchain details, helper packaging, and test commands.
+
+For synthetic data when capturing screenshots, launch the packaged executable with `--demo-inventory`. Sample mode is labeled explicitly and is never used as a fallback when discovery fails.
 
 ## Product scope
 

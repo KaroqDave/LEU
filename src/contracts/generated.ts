@@ -47,6 +47,49 @@ export interface EngineVersionResult {
   platform: string;
 }
 
+export type InventoryListParams = Record<string, never>;
+
+export interface InventoryListResult {
+  /**
+   * @maxItems 64
+   */
+  issues: {
+    code: 'ACCESS_DENIED' | 'READ_FAILED' | 'INVALID_VALUE' | 'LIMIT_REACHED';
+    message: string;
+    source: {
+      hive: 'HKCU' | 'HKLM';
+      key: string;
+      view: 'shared' | 'x86' | 'x64';
+    };
+  }[];
+  issuesOmitted: number;
+  /**
+   * @maxItems 4096
+   */
+  programs: {
+    id: string;
+    installLocation: string | null;
+    name: string;
+    publisher: string | null;
+    reportedInstallDate: string | null;
+    reportedSizeBytes: number | null;
+    scope: 'user' | 'machine';
+    source: {
+      hive: 'HKCU' | 'HKLM';
+      key: string;
+      view: 'shared' | 'x86' | 'x64';
+    };
+    systemComponent: boolean;
+    /**
+     * A child update, hotfix, or service pack registration (ParentKeyName or ReleaseType).
+     */
+    updateRegistration: boolean;
+    version: string | null;
+  }[];
+  status: 'complete' | 'partial' | 'unavailable';
+}
+
 export interface EngineMethods {
   'engine.version': { params: EngineVersionParams; result: EngineVersionResult };
+  'inventory.list': { params: InventoryListParams; result: InventoryListResult };
 }

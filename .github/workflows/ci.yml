@@ -31,3 +31,5 @@ jobs:
         run: pnpm package
       - name: Verify packaged application
         run: pnpm smoke
+      - name: Verify read-only Windows inventory
+        run: pnpm smoke:inventory

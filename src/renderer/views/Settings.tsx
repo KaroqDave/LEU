@@ -69,7 +69,7 @@ export function Settings({
       <section className="settings-panel">
         <div className="panel-heading">
           <h2>About LEU</h2>
-          <span className="version-pill">M0</span>
+          <span className="version-pill">M1 preview</span>
         </div>
         <dl className="settings-list">
           <div>

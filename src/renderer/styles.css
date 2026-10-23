@@ -820,6 +820,55 @@ dd {
   font-size: 12px;
   line-height: 1.7;
 }
+.live-inventory-banner {
+  background: var(--accent-soft);
+  color: var(--accent);
+  border-color: var(--line);
+}
+.inventory-issues summary {
+  cursor: pointer;
+}
+.inventory-issues ul {
+  max-height: 220px;
+  overflow: auto;
+  padding-left: 20px;
+}
+.inventory-issues li {
+  margin-block: 10px;
+}
+.inventory-issues code {
+  display: block;
+  overflow-wrap: anywhere;
+}
+.system-filter {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0 18px 14px;
+  color: var(--muted);
+  font-size: 10px;
+}
+.system-filter input {
+  accent-color: var(--accent);
+}
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 0 18px 15px;
+  color: var(--muted);
+  font-size: 10px;
+}
+.pagination .button {
+  padding: 8px;
+  font-size: 10px;
+}
+.metadata-note {
+  color: var(--muted);
+  font-size: 9px;
+  line-height: 1.7;
+}
 @media (max-width: 1190px) {
   .sidebar {
     width: 210px;

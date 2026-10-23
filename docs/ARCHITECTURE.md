@@ -61,7 +61,11 @@ The renderer cannot authorize arbitrary executable paths, registry keys, or dele
 
 Read uninstall records from the current user's and machine's uninstall registry locations. On x64 Windows, explicitly enumerate the relevant 32 bit and 64 bit views. Keep the hive, view, and subkey as provenance; they are part of program identity. Microsoft documents the [uninstall properties](https://learn.microsoft.com/en-us/windows/win32/msi/uninstall-registry-key) and [registry view flags](https://learn.microsoft.com/en-us/windows/win32/winprog64/accessing-an-alternate-registry-view).
 
-Normalize records into a common model while preserving their source. Do not merge two installations solely because their display names match. Hide system components in the ordinary view while allowing users to inspect them without offering unsupported actions.
+The M1 implementation reads `HKLM` in its x64 and x86 views and `HKCU` once with a `shared` view. `HKCU\Software` is shared on supported Windows versions, so repeating it through both view flags would duplicate the same physical registrations. See Microsoft's [shared registry keys](https://learn.microsoft.com/en-us/windows/win32/winprog64/shared-registry-keys). The `windows-sys` bindings open read-only registry handles; the provider never reads uninstall commands or resolves installation locations. Strings end at their first NUL, as Windows reads them, then use strict UTF-16 decoding with an 8 KiB read limit. Enumeration visits at most 4,096 registrations, collects at most 64 detailed warnings with an omitted count, and reserves 6 MiB of the 8 MiB response for program records. Limits, source failures, unreadable registrations, and registrations hidden by an unusable `DisplayName` return an explicit partial inventory. Malformed optional metadata produces warnings but leaves the list complete. The app allows the inventory request 60 seconds, because a missed deadline restarts the helper.
+
+Normalize records into a common model while preserving their source. Do not merge two installations solely because their display names match. Hide system components and update registrations in the ordinary view while allowing users to inspect them without offering unsupported actions. As in Programs and Features, a registration with `ParentKeyName` or an update `ReleaseType` (update, hotfix, security update, service pack, update rollup, or critical update) is an update rather than a program.
+
+The current provider omits registrations without a usable `DisplayName`. Absent optional metadata becomes `null`; malformed or unreadable values also produce source warnings. Registry `InstallDate` is validated as a calendar date and exposed as `reportedInstallDate`, since servicing can change it. No directory-size measurement or filesystem check is inferred from registry metadata.
 
 | Program field | Meaning |
 | --- | --- |
@@ -71,6 +75,9 @@ Normalize records into a common model while preserving their source. Do not merg
 | `scope` | Current user or machine. |
 | `installLocation` | Reported location, treated as untrusted and potentially absent. |
 | `reportedSizeBytes` | Optional installer estimate with its source recorded. |
+| `reportedInstallDate` | Optional validated `InstallDate`, which may reflect installation, repair, or update. |
+| `systemComponent` | Installer flag; hidden by default, available through the inclusion checkbox. |
+| `updateRegistration` | Child update or servicing registration; hidden by default with system components. |
 | `capabilities` | Whether details, supported uninstall preparation, or a particular scan is available. |
 
 Present unknown size as unknown. Distinguish installer estimates from measured directory usage. Fetch icons lazily and avoid traversing every installation directory during startup. An inventory refresh can return partial results with explicit source errors.
@@ -189,7 +196,7 @@ Record the machine, OS, Electron version, build type, and dataset with measureme
 
 Keep expensive work in the engine, cache icons, limit concurrent directory work, and start scans on request. Do not install a background service or start with Windows by default. These choices align with [Electron's performance guidance](https://www.electronjs.org/docs/latest/tutorial/performance).
 
-The current M0 data handling is documented in [PRIVACY.md](../PRIVACY.md). Packaged browser sessions block external network requests; development uses only the local Forge server for the interface. Production source maps are omitted, and release helper builds remap machine-specific source paths.
+The current preview's data handling is documented in [PRIVACY.md](../PRIVACY.md). Packaged browser sessions block external network requests; development uses only the local Forge server for the interface. Production source maps are omitted, and release helper builds remap machine-specific source paths.
 
 For future capabilities, inventory, paths, journals, and quarantine must remain local. Diagnostic exports require a user action and provide a preview with usernames and sensitive paths redacted. Network access for release checks is separate from core functionality, and update installation must verify release authenticity. New Node.js or native network APIs need their own privacy review because they bypass the browser-session request policy.
 

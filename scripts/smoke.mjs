@@ -81,6 +81,7 @@ const started = performance.now();
 const child = spawn(
   executable,
   [
+    '--demo-inventory',
     '--remote-debugging-port=0',
     '--remote-debugging-address=127.0.0.1',
     `--user-data-dir=${profile}`,

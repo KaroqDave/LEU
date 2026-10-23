@@ -25,6 +25,95 @@
         "type": "object"
       },
       "typeName": "EngineVersion"
+    },
+    "inventory.list": {
+      "params": { "additionalProperties": false, "type": "object" },
+      "result": {
+        "additionalProperties": false,
+        "properties": {
+          "issues": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "code": {
+                  "enum": ["ACCESS_DENIED", "READ_FAILED", "INVALID_VALUE", "LIMIT_REACHED"],
+                  "type": "string"
+                },
+                "message": { "type": "string" },
+                "source": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "hive": { "enum": ["HKCU", "HKLM"], "type": "string" },
+                    "key": { "maxLength": 1024, "type": "string" },
+                    "view": { "enum": ["shared", "x86", "x64"], "type": "string" }
+                  },
+                  "required": ["hive", "view", "key"],
+                  "type": "object"
+                }
+              },
+              "required": ["source", "code", "message"],
+              "type": "object"
+            },
+            "maxItems": 64,
+            "type": "array"
+          },
+          "issuesOmitted": { "minimum": 0, "type": "integer" },
+          "programs": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "id": { "maxLength": 2048, "minLength": 1, "type": "string" },
+                "installLocation": { "type": ["string", "null"] },
+                "name": { "maxLength": 4096, "minLength": 1, "type": "string" },
+                "publisher": { "type": ["string", "null"] },
+                "reportedInstallDate": { "type": ["string", "null"] },
+                "reportedSizeBytes": {
+                  "maximum": 4398046510080,
+                  "minimum": 0,
+                  "type": ["integer", "null"]
+                },
+                "scope": { "enum": ["user", "machine"], "type": "string" },
+                "source": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "hive": { "enum": ["HKCU", "HKLM"], "type": "string" },
+                    "key": { "maxLength": 1024, "type": "string" },
+                    "view": { "enum": ["shared", "x86", "x64"], "type": "string" }
+                  },
+                  "required": ["hive", "view", "key"],
+                  "type": "object"
+                },
+                "systemComponent": { "type": "boolean" },
+                "updateRegistration": {
+                  "description": "A child update, hotfix, or service pack registration (ParentKeyName or ReleaseType).",
+                  "type": "boolean"
+                },
+                "version": { "type": ["string", "null"] }
+              },
+              "required": [
+                "id",
+                "name",
+                "publisher",
+                "version",
+                "scope",
+                "reportedSizeBytes",
+                "reportedInstallDate",
+                "installLocation",
+                "source",
+                "systemComponent",
+                "updateRegistration"
+              ],
+              "type": "object"
+            },
+            "maxItems": 4096,
+            "type": "array"
+          },
+          "status": { "enum": ["complete", "partial", "unavailable"], "type": "string" }
+        },
+        "required": ["status", "programs", "issues", "issuesOmitted"],
+        "type": "object"
+      },
+      "typeName": "InventoryList"
     }
   },
   "protocolVersion": 1,

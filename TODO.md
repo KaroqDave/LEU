@@ -21,6 +21,18 @@ Open work from the October 2026 project review. Milestone scope and acceptance c
 - [x] Add ESLint with `eslint-plugin-react-hooks`. `pnpm lint` checks application code, scripts, and tests; `pnpm check` and CI enforce it with no warnings allowed.
 - [ ] Design optional, bounded helper diagnostics with a user preview and redaction before export. Helper stderr is currently discarded; preserve the privacy behavior in [PRIVACY.md](PRIVACY.md).
 
+## M1 live discovery
+
+- [x] Add the typed, parameter-free `inventory.list` method and generated program contracts.
+- [x] Read current-user and both machine registry views with source identity and read-only Windows handles.
+- [x] Normalize nullable metadata, size estimates, reported dates, system-component flags, and update registrations; retain duplicate display names.
+- [x] Add loading, retry, partial warnings, bounded list pages, and selection-preserving refresh. Retain previous results after failed refreshes.
+- [x] Keep sample captures behind explicit `--demo-inventory`; add a separate live smoke test that saves no inventories or screenshots.
+- [ ] Load real application icons lazily; the current placeholders remain renderer-only.
+- [ ] Compare known installations across scopes and views in disposable Windows VMs before closing the M1 release gate.
+
+Local verification on 2026-10-23: source checks and live discovery through the development launcher pass. Registry source counts match an independent read-only .NET enumeration. Packaging succeeds, but Windows Code Integrity blocks the unsigned packaged `LEU.exe` on this machine (event 3077); packaged startup and smoke checks remain unverified for this change.
+
 ## Protocol review follow-ups
 
 From the 2026-10-21 code review of the request multiplexing and contract generation commits.

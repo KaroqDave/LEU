@@ -33,7 +33,7 @@ export default defineConfig([
   },
   {
     // These functions execute in Electron's renderer through Playwright.
-    files: ['scripts/smoke.mjs'],
+    files: ['scripts/smoke.mjs', 'scripts/inventory-smoke.mjs'],
     languageOptions: { globals: globals.browser },
   },
 ]);
