@@ -1,9 +1,10 @@
 use super::{ICON_SIZE, IconHost, IconMissing, Rgba};
 use crate::inventory::registry::{WindowsRegistry, wide};
-use crate::inventory::{RawRecord, ReadError, RegistrySource};
+use crate::inventory::{MAX_VALUE_BYTES, RawRecord, ReadError, RegistrySource};
 use std::mem::size_of;
 use std::ptr::null_mut;
 use windows_sys::Win32::{
+    Foundation::ERROR_SUCCESS,
     Graphics::Gdi::{
         BI_RGB, BITMAP, BITMAPINFO, BITMAPINFOHEADER, CreateCompatibleDC, DIB_RGB_COLORS, DeleteDC,
         DeleteObject, GetDIBits, GetObjectW, HBITMAP, HDC,
@@ -13,7 +14,10 @@ use windows_sys::Win32::{
         FILE_ATTRIBUTE_RECALL_ON_OPEN, FILE_ATTRIBUTE_REPARSE_POINT, GetDriveTypeW,
         GetFileAttributesW, INVALID_FILE_ATTRIBUTES,
     },
-    System::Environment::ExpandEnvironmentStringsW,
+    System::{
+        ApplicationInstallationAndServicing::{INSTALLPROPERTY_PRODUCTICON, MsiGetProductInfoW},
+        Environment::ExpandEnvironmentStringsW,
+    },
     UI::{
         Shell::SHDefExtractIconW,
         WindowsAndMessaging::{DestroyIcon, GetIconInfo, HICON, ICONINFO},
@@ -72,6 +76,29 @@ impl IconHost for WindowsIcons {
         names: &[&str],
     ) -> Result<Option<RawRecord>, ReadError> {
         WindowsRegistry.read(source, names)
+    }
+
+    fn product_icon(&self, product_code: &str) -> Option<String> {
+        let product_code = wide(product_code);
+        // The same bound as registry strings read by the inventory.
+        let mut buffer = vec![0u16; MAX_VALUE_BYTES / 2];
+        let mut length = buffer.len() as u32;
+        // SAFETY: The product code is NUL-terminated, the property is a static wide string, and
+        // the length is the buffer's capacity in characters. This reads the product
+        // registration; unlike Win32_Product queries, it does not verify or repair the product.
+        let result = unsafe {
+            MsiGetProductInfoW(
+                product_code.as_ptr(),
+                INSTALLPROPERTY_PRODUCTICON,
+                buffer.as_mut_ptr(),
+                &mut length,
+            )
+        };
+        // Unknown products, missing properties, and oversized values all leave no icon.
+        if result != ERROR_SUCCESS || length as usize >= buffer.len() {
+            return None;
+        }
+        String::from_utf16(&buffer[..length as usize]).ok()
     }
 
     fn expand(&self, path: &str) -> Option<String> {

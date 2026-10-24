@@ -5,6 +5,8 @@ use std::collections::BTreeMap;
 
 struct FakeHost {
     record: Result<Option<RawRecord>, ReadError>,
+    product_icon: Option<String>,
+    products: RefCell<Vec<String>>,
     extracted: RefCell<Vec<(String, i32)>>,
 }
 
@@ -12,7 +14,19 @@ impl FakeHost {
     fn with(record: Result<Option<RawRecord>, ReadError>) -> Self {
         Self {
             record,
+            product_icon: None,
+            products: RefCell::new(vec![]),
             extracted: RefCell::new(vec![]),
+        }
+    }
+
+    fn installer(product_icon: Option<&str>) -> Self {
+        Self {
+            product_icon: product_icon.map(str::to_owned),
+            ..Self::with(Ok(Some(BTreeMap::from([(
+                "WindowsInstaller".to_owned(),
+                RegistryValue::Dword(1),
+            )]))))
         }
     }
 
@@ -26,8 +40,13 @@ impl FakeHost {
 
 impl IconHost for FakeHost {
     fn read(&self, _: &RegistrySource, names: &[&str]) -> Result<Option<RawRecord>, ReadError> {
-        assert_eq!(names, ["DisplayIcon"]);
+        assert_eq!(names, ["DisplayIcon", "WindowsInstaller"]);
         self.record.clone()
+    }
+
+    fn product_icon(&self, product_code: &str) -> Option<String> {
+        self.products.borrow_mut().push(product_code.to_owned());
+        self.product_icon.clone()
     }
 
     fn expand(&self, path: &str) -> Option<String> {
@@ -201,6 +220,144 @@ fn expands_and_extracts_the_registered_icon() {
         *host.extracted.borrow(),
         [(r"C:\Program Files\App\app.exe".to_owned(), -3)]
     );
+    // A registered DisplayIcon is used even for Windows Installer products.
+    assert!(host.products.borrow().is_empty());
+}
+
+const PRODUCT: &str = "{0AE7F899-490C-423C-B3F5-8A520B8BCE14}";
+
+#[test]
+fn recognizes_windows_installer_product_codes() {
+    let installer = BTreeMap::from([("WindowsInstaller".to_owned(), RegistryValue::Dword(1))]);
+    let source = |name: &str| parse_program_id(&id(name)).unwrap();
+    assert_eq!(
+        installer_product_code(&source(PRODUCT), &installer),
+        Some(PRODUCT)
+    );
+    let lower = PRODUCT.to_ascii_lowercase();
+    assert_eq!(
+        installer_product_code(&source(&lower), &installer),
+        Some(lower.as_str())
+    );
+    for name in [
+        "App",
+        "{0AE7F899-490C-423C-B3F5-8A520B8BCE1}",
+        "{0AE7F899-490C-423C-B3F5-8A520B8BCE14}.KB1",
+        "{0AE7F899+490C-423C-B3F5-8A520B8BCE14}",
+        "{0AE7F899-490C-423C-B3F5-8A520B8BCEZ4}",
+        "0AE7F899-490C-423C-B3F5-8A520B8BCE14AA",
+    ] {
+        assert_eq!(installer_product_code(&source(name), &installer), None);
+    }
+    for record in [
+        BTreeMap::new(),
+        BTreeMap::from([("WindowsInstaller".to_owned(), RegistryValue::Dword(0))]),
+        BTreeMap::from([(
+            "WindowsInstaller".to_owned(),
+            RegistryValue::String("1".to_owned()),
+        )]),
+    ] {
+        assert_eq!(installer_product_code(&source(PRODUCT), &record), None);
+    }
+}
+
+#[test]
+fn accepts_extensionless_icons_only_in_the_products_installer_cache() {
+    for path in [
+        r"C:\Windows\Installer\{0AE7F899-490C-423C-B3F5-8A520B8BCE14}\NodeIcon",
+        r"C:\Users\Demo\AppData\Roaming\Microsoft\Installer\{0ae7f899-490c-423c-b3f5-8a520b8bce14}\ARPIcon",
+    ] {
+        assert!(is_cached_installer_icon(path, PRODUCT), "{path}");
+    }
+    for path in [
+        r"C:\Windows\Installer\{11111111-490C-423C-B3F5-8A520B8BCE14}\NodeIcon",
+        r"C:\Windows\Cache\{0AE7F899-490C-423C-B3F5-8A520B8BCE14}\NodeIcon",
+        r"C:\Windows\Installer\{0AE7F899-490C-423C-B3F5-8A520B8BCE14}\setup.cmd",
+        r"C:\Windows\Installer\{0AE7F899-490C-423C-B3F5-8A520B8BCE14}\",
+        r"\\server\Installer\{0AE7F899-490C-423C-B3F5-8A520B8BCE14}\NodeIcon",
+        r"C:\Windows\Installer\{0AE7F899-490C-423C-B3F5-8A520B8BCE14}\NodeIcon:stream",
+        r"Installer\{0AE7F899-490C-423C-B3F5-8A520B8BCE14}\NodeIcon",
+    ] {
+        assert!(!is_cached_installer_icon(path, PRODUCT), "{path}");
+    }
+}
+
+#[test]
+fn falls_back_to_the_windows_installer_product_icon() {
+    for (product_icon, extracted) in [
+        (
+            r"C:\Windows\Installer\{0AE7F899-490C-423C-B3F5-8A520B8BCE14}\NodeIcon",
+            (
+                r"C:\Windows\Installer\{0AE7F899-490C-423C-B3F5-8A520B8BCE14}\NodeIcon",
+                0,
+            ),
+        ),
+        (
+            r"%ProgramFiles%\App\app.exe,2",
+            (r"C:\Program Files\App\app.exe", 2),
+        ),
+    ] {
+        let host = FakeHost::installer(Some(product_icon));
+        assert!(matches!(
+            lookup(&host, &id(PRODUCT)),
+            IconResult::Found { .. }
+        ));
+        assert_eq!(*host.products.borrow(), [PRODUCT]);
+        assert_eq!(
+            *host.extracted.borrow(),
+            [(extracted.0.to_owned(), extracted.1)]
+        );
+    }
+
+    for (host, name, reason) in [
+        (FakeHost::installer(None), PRODUCT, IconMissing::NoIcon),
+        (
+            FakeHost::installer(Some("  ")),
+            PRODUCT,
+            IconMissing::NoIcon,
+        ),
+        // Only the product's own cache folder may hold an extensionless icon.
+        (
+            FakeHost::installer(Some(r"C:\Tools\NodeIcon")),
+            PRODUCT,
+            IconMissing::UnsupportedLocation,
+        ),
+        (
+            FakeHost::installer(Some(
+                r"C:\Windows\Installer\{11111111-490C-423C-B3F5-8A520B8BCE14}\NodeIcon",
+            )),
+            PRODUCT,
+            IconMissing::UnsupportedLocation,
+        ),
+        (
+            FakeHost::installer(Some(r"\\server\share\icon.ico")),
+            PRODUCT,
+            IconMissing::UnsupportedLocation,
+        ),
+    ] {
+        assert_eq!(lookup(&host, &id(name)), IconResult::Missing { reason });
+        assert!(host.extracted.borrow().is_empty());
+    }
+
+    // Registrations that are not Windows Installer products never query the installer.
+    for (host, name) in [
+        (FakeHost::installer(Some(r"C:\App\app.ico")), "App"),
+        (
+            FakeHost {
+                product_icon: Some(r"C:\App\app.ico".to_owned()),
+                ..FakeHost::with(Ok(Some(BTreeMap::new())))
+            },
+            PRODUCT,
+        ),
+    ] {
+        assert_eq!(
+            lookup(&host, &id(name)),
+            IconResult::Missing {
+                reason: IconMissing::NoIcon
+            }
+        );
+        assert!(host.products.borrow().is_empty());
+    }
 }
 
 #[test]
@@ -293,4 +450,9 @@ fn extracts_a_windows_icon_without_registry_access() {
         Err(IconMissing::ReadFailed)
     ));
     assert!(WindowsIcons.expand("%LEU_UNDEFINED%\\x.exe").is_some());
+    // A product code that no Windows Installer product uses.
+    assert_eq!(
+        WindowsIcons.product_icon("{00000000-0000-0000-0000-00000000E1E0}"),
+        None
+    );
 }

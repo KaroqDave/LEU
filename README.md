@@ -25,7 +25,7 @@ The central product principle is **explain every cleanup action before making it
 
 The M1 inventory preview discovers desktop programs through the local Rust helper. It reads current-user registrations and both machine registry views, preserves each registration's provenance, and supports search, sorting, scope filters, keyboard selection, refresh, and partial source warnings. System components and update registrations are hidden by default and can be included for inspection.
 
-Missing metadata stays unknown. Size is a partial installer estimate, and the reported date may reflect installation, repair, or update. Microsoft Store packages and unregistered portable apps are outside this preview. Icons come from each registration's `DisplayIcon` and load as rows scroll into view; apps without one keep a placeholder. Comparison against known installations in disposable Windows VMs remains an M1 follow-up. Uninstall and cleanup actions are unavailable.
+Missing metadata stays unknown. Size is a partial installer estimate, and the reported date may reflect installation, repair, or update. Microsoft Store packages and unregistered portable apps are outside this preview. Icons come from each registration's `DisplayIcon`, or the Windows Installer product icon, and load as rows scroll into view; apps without one keep a placeholder. Comparison against known installations in disposable Windows VMs remains an M1 follow-up. Uninstall and cleanup actions are unavailable.
 
 Confirmed direction:
 

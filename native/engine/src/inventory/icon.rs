@@ -1,6 +1,7 @@
 //! Program icons, read lazily for one registration at a time. The caller names a program by its
-//! inventory id, never by a path; the engine re-reads that registration's `DisplayIcon` and
-//! accepts only a local executable, library, or icon file. No installation directory is searched.
+//! inventory id, never by a path; the engine re-reads that registration's `DisplayIcon`, or a
+//! Windows Installer product's registered icon, and accepts only a local executable, library, or
+//! icon file. No installation directory is searched.
 use super::{Hive, RawRecord, ReadError, RegistrySource, RegistryValue, UNINSTALL_KEY, View};
 use serde::{Deserialize, Serialize};
 
@@ -68,9 +69,11 @@ pub(super) struct Rgba(pub Vec<u8>);
 pub(super) trait IconHost {
     fn read(&self, source: &RegistrySource, names: &[&str])
     -> Result<Option<RawRecord>, ReadError>;
+    /// The `ProductIcon` Windows Installer registered for a product code, if any.
+    fn product_icon(&self, product_code: &str) -> Option<String>;
     /// Expands environment references in a `REG_EXPAND_SZ`-style path.
     fn expand(&self, path: &str) -> Option<String>;
-    /// Extracts an icon from a path that already passed `is_supported_location`.
+    /// Extracts an icon from a path that already passed the location checks.
     fn extract(&self, path: &str, index: i32) -> Result<Rgba, IconMissing>;
 }
 
@@ -111,23 +114,68 @@ pub(super) fn parse_display_icon(value: &str) -> Option<(String, i32)> {
     (!path.is_empty()).then(|| (path.to_owned(), index))
 }
 
-/// Accepts only an absolute drive path to an executable, library, or icon file. This rejects
-/// UNC and device paths, relative paths searched by Windows, and alternate data streams.
-pub(super) fn is_supported_location(path: &str) -> bool {
+/// Accepts an absolute drive path. This rejects UNC and device paths, relative paths searched by
+/// Windows, and alternate data streams.
+fn is_drive_path(path: &str) -> bool {
     let bytes = path.as_bytes();
-    let absolute = bytes.len() > 3
+    bytes.len() > 3
         && bytes[0].is_ascii_alphabetic()
         && bytes[1] == b':'
-        && matches!(bytes[2], b'\\' | b'/');
+        && matches!(bytes[2], b'\\' | b'/')
+        && !path[2..].contains(':')
+        && !path.chars().any(char::is_control)
+}
+
+/// Accepts only an absolute drive path to an executable, library, or icon file.
+pub(super) fn is_supported_location(path: &str) -> bool {
     let extension = path
         .rsplit(['\\', '/'])
         .next()
         .and_then(|name| name.rsplit_once('.'))
         .map(|(_, extension)| extension.to_ascii_lowercase());
-    absolute
-        && !path[2..].contains(':')
-        && !path.chars().any(char::is_control)
+    is_drive_path(path)
         && extension.is_some_and(|extension| EXTENSIONS.contains(&extension.as_str()))
+}
+
+/// Windows Installer caches product icons as `...\Installer\{ProductCode}\<Icon table name>`,
+/// and those names often have no extension. Accept such a file only in that product's folder.
+pub(super) fn is_cached_installer_icon(path: &str, product_code: &str) -> bool {
+    let mut components = path.rsplit(['\\', '/']);
+    let (Some(name), Some(product), Some(cache)) =
+        (components.next(), components.next(), components.next())
+    else {
+        return false;
+    };
+    is_drive_path(path)
+        && !name.is_empty()
+        && !name.contains('.')
+        && product.eq_ignore_ascii_case(product_code)
+        && cache.eq_ignore_ascii_case("Installer")
+}
+
+/// The product code of a Windows Installer registration, whose uninstall key is named by it.
+pub(super) fn installer_product_code<'a>(
+    source: &'a RegistrySource,
+    record: &RawRecord,
+) -> Option<&'a str> {
+    let name = source.key.rsplit('\\').next()?;
+    let bytes = name.as_bytes();
+    let guid = bytes.len() == 38
+        && bytes[0] == b'{'
+        && bytes[37] == b'}'
+        && bytes[1..37].iter().enumerate().all(|(index, byte)| {
+            if matches!(index, 8 | 13 | 18 | 23) {
+                *byte == b'-'
+            } else {
+                byte.is_ascii_hexdigit()
+            }
+        });
+    (guid
+        && matches!(
+            record.get("WindowsInstaller"),
+            Some(RegistryValue::Dword(1))
+        ))
+    .then_some(name)
 }
 
 pub(super) fn lookup(host: &impl IconHost, program_id: &str) -> IconResult {
@@ -138,23 +186,40 @@ pub(super) fn lookup(host: &impl IconHost, program_id: &str) -> IconResult {
     else {
         return missing(IconMissing::UnknownProgram);
     };
-    let record = match host.read(&source, &["DisplayIcon"]) {
+    let record = match host.read(&source, &["DisplayIcon", "WindowsInstaller"]) {
         Ok(Some(record)) => record,
         Ok(None) => return missing(IconMissing::UnknownProgram),
         Err(_) => return missing(IconMissing::ReadFailed),
     };
-    let value = match record.get("DisplayIcon") {
-        Some(RegistryValue::String(value)) => value,
-        None => return missing(IconMissing::NoIcon),
+    let display_icon = match record.get("DisplayIcon") {
+        Some(RegistryValue::String(value)) => parse_display_icon(value),
+        None => None,
         Some(_) => return missing(IconMissing::ReadFailed),
     };
-    let Some((path, index)) = parse_display_icon(value) else {
-        return missing(IconMissing::NoIcon);
+    // Like Windows Settings, fall back to the icon Windows Installer registered for the product
+    // (ARPPRODUCTICON) when the uninstall registration has no DisplayIcon.
+    let (path, index, product_code) = match display_icon {
+        Some((path, index)) => (path, index, None),
+        None => {
+            let Some(product_code) = installer_product_code(&source, &record) else {
+                return missing(IconMissing::NoIcon);
+            };
+            let Some((path, index)) = host
+                .product_icon(product_code)
+                .as_deref()
+                .and_then(parse_display_icon)
+            else {
+                return missing(IconMissing::NoIcon);
+            };
+            (path, index, Some(product_code))
+        }
     };
     let Some(path) = host.expand(&path) else {
         return missing(IconMissing::UnsupportedLocation);
     };
-    if !is_supported_location(&path) {
+    let supported = is_supported_location(&path)
+        || product_code.is_some_and(|product_code| is_cached_installer_icon(&path, product_code));
+    if !supported {
         return missing(IconMissing::UnsupportedLocation);
     }
     match host.extract(&path, index) {
