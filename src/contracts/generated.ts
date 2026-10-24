@@ -47,6 +47,23 @@ export interface EngineVersionResult {
   platform: string;
 }
 
+export interface InventoryIconParams {
+  programId: string;
+}
+
+export type InventoryIconResult =
+  | {
+      /**
+       * A base64 PNG of 64 by 64 pixels, encoded by the engine rather than copied from disk.
+       */
+      png: string;
+      status: 'found';
+    }
+  | {
+      reason: 'UNKNOWN_PROGRAM' | 'NO_ICON' | 'UNSUPPORTED_LOCATION' | 'READ_FAILED';
+      status: 'missing';
+    };
+
 export type InventoryListParams = Record<string, never>;
 
 export interface InventoryListResult {
@@ -91,5 +108,6 @@ export interface InventoryListResult {
 
 export interface EngineMethods {
   'engine.version': { params: EngineVersionParams; result: EngineVersionResult };
+  'inventory.icon': { params: InventoryIconParams; result: InventoryIconResult };
   'inventory.list': { params: InventoryListParams; result: InventoryListResult };
 }

@@ -13,5 +13,6 @@ const bridge: LeuBridge = {
   },
   restartEngine: () => ipcRenderer.invoke('leu:engine-restart'),
   listPrograms: () => ipcRenderer.invoke('leu:list-programs'),
+  getProgramIcon: (programId) => ipcRenderer.invoke('leu:program-icon', programId),
 };
 contextBridge.exposeInMainWorld('leu', Object.freeze(bridge));

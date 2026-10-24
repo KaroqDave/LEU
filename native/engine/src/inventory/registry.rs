@@ -27,7 +27,7 @@ impl Drop for Key {
     }
 }
 
-fn wide(value: &str) -> Vec<u16> {
+pub(super) fn wide(value: &str) -> Vec<u16> {
     value.encode_utf16().chain(Some(0)).collect()
 }
 fn read_error(code: u32) -> ReadError {
@@ -111,18 +111,39 @@ fn record(key: &Key, names: &[(&str, Vec<u16>)]) -> RawRecord {
     record
 }
 
+fn hive(hive: Hive) -> HKEY {
+    match hive {
+        Hive::CurrentUser => HKEY_CURRENT_USER,
+        Hive::LocalMachine => HKEY_LOCAL_MACHINE,
+    }
+}
+
+impl WindowsRegistry {
+    /// Reads the named values of one registration, or `None` when it no longer exists.
+    pub(super) fn read(
+        &self,
+        source: &RegistrySource,
+        names: &[&str],
+    ) -> Result<Option<RawRecord>, ReadError> {
+        let names: Vec<_> = names.iter().map(|name| (*name, wide(name))).collect();
+        let key = open(
+            hive(source.hive),
+            &wide(&source.key),
+            source.view,
+            KEY_QUERY_VALUE,
+        )?;
+        Ok(key.map(|key| record(&key, &names)))
+    }
+}
+
 impl RegistryReader for WindowsRegistry {
     fn enumerate(
         &self,
         source: &RegistrySource,
         visit: &mut dyn FnMut(&str, Result<RawRecord, ReadError>) -> bool,
     ) -> Result<(), ReadError> {
-        let hive = match source.hive {
-            Hive::CurrentUser => HKEY_CURRENT_USER,
-            Hive::LocalMachine => HKEY_LOCAL_MACHINE,
-        };
         let Some(root) = open(
-            hive,
+            hive(source.hive),
             &wide(&source.key),
             source.view,
             KEY_ENUMERATE_SUB_KEYS,

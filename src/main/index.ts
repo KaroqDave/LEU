@@ -3,6 +3,7 @@ import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { EngineClient } from './engine-client';
 import { getDemoInventory } from './fixtures';
+import { IconLoader } from './icons';
 import { resolveAsset, resolveHelperPath } from './paths';
 
 protocol.registerSchemesAsPrivileged([
@@ -23,6 +24,8 @@ const productionOrigin = 'leu://app';
 // A missed deadline restarts the helper, so allow slow or security-hooked registries to finish
 // a bounded read of up to 4,096 registrations rather than failing the whole connection.
 const INVENTORY_TIMEOUT_MS = 60_000;
+// One icon reads a single registry value and one local file.
+const ICON_TIMEOUT_MS = 10_000;
 const csp =
   "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'none'; object-src 'none'; base-uri 'none'; frame-src 'none'";
 
@@ -109,6 +112,19 @@ app
     const allowedOrigin = app.isPackaged
       ? productionOrigin
       : new URL(MAIN_WINDOW_WEBPACK_ENTRY).origin;
+    const permitted = (event: Electron.IpcMainInvokeEvent) =>
+      window !== undefined &&
+      event.sender === window.webContents &&
+      event.senderFrame !== null &&
+      event.senderFrame === window.webContents.mainFrame &&
+      event.senderFrame.origin === allowedOrigin;
+    // Icons are served only for registrations in the latest live inventory.
+    let livePrograms = new Set<string>();
+    let inventoryRead: Promise<unknown> = Promise.resolve();
+    const icons = new IconLoader(
+      (programId) => engine.request('inventory.icon', { programId }, ICON_TIMEOUT_MS),
+      () => inventoryRead,
+    );
     const handlers: Record<string, () => unknown> = {
       'leu:app-info': () => ({
         version: app.getVersion(),
@@ -118,29 +134,29 @@ app
       }),
       'leu:engine-status': () => engine.getStatus(),
       'leu:engine-restart': () => engine.restart(),
-      'leu:list-programs': () =>
-        app.commandLine.hasSwitch('demo-inventory')
-          ? getDemoInventory()
-          : engine.request('inventory.list', {}, INVENTORY_TIMEOUT_MS).then((inventory) => ({
-              ...inventory,
-              source: 'windows' as const,
-            })),
+      'leu:list-programs': () => {
+        if (app.commandLine.hasSwitch('demo-inventory')) return getDemoInventory();
+        icons.clear();
+        const read = engine.request('inventory.list', {}, INVENTORY_TIMEOUT_MS);
+        inventoryRead = read.catch(() => undefined);
+        return read.then((inventory) => {
+          livePrograms = new Set(inventory.programs.map((program) => program.id));
+          return { ...inventory, source: 'windows' as const };
+        });
+      },
     };
     for (const [channel, handler] of Object.entries(handlers)) {
       ipcMain.handle(channel, (event, ...args: unknown[]) => {
-        if (
-          !window ||
-          event.sender !== window.webContents ||
-          !event.senderFrame ||
-          event.senderFrame !== window.webContents.mainFrame ||
-          event.senderFrame.origin !== allowedOrigin ||
-          args.length !== 0
-        ) {
-          throw new Error('Request is not permitted.');
-        }
+        if (!permitted(event) || args.length !== 0) throw new Error('Request is not permitted.');
         return handler();
       });
     }
+    ipcMain.handle('leu:program-icon', (event, ...args: unknown[]) => {
+      const [programId] = args;
+      if (!permitted(event) || args.length !== 1 || typeof programId !== 'string')
+        throw new Error('Request is not permitted.');
+      return livePrograms.has(programId) ? icons.get(programId) : null;
+    });
     await createWindow();
     void engine.getStatus();
   })

@@ -1,9 +1,11 @@
 import type { Program } from '../../contracts/bridge';
+import { useProgramIcon } from '../program-icons';
 
 const colors = ['blue', 'purple', 'orange', 'slate', 'gray', 'green'] as const;
 
-// Renderer-only placeholders until the inventory provider supports real app icons.
+// Shows the registered icon once loaded; programs without one keep a placeholder from their name.
 export function AppIcon({ program, large = false }: { program: Program; large?: boolean }) {
+  const { ref, icon } = useProgramIcon(program.id);
   const words = program.name.trim().split(/\s+/u);
   const initials =
     words.length > 1
@@ -19,8 +21,12 @@ export function AppIcon({ program, large = false }: { program: Program; large?: 
     colorIndex = (colorIndex * 31 + (character.codePointAt(0) ?? 0)) % colors.length;
   }
   return (
-    <span aria-hidden="true" className={`app-icon ${colors[colorIndex]} ${large ? 'large' : ''}`}>
-      {initials.toLocaleUpperCase() || '?'}
+    <span
+      ref={ref}
+      aria-hidden="true"
+      className={`app-icon ${icon ? 'has-image' : colors[colorIndex]} ${large ? 'large' : ''}`}
+    >
+      {icon ? <img src={icon} alt="" draggable={false} /> : initials.toLocaleUpperCase() || '?'}
     </span>
   );
 }

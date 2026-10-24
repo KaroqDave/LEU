@@ -26,6 +26,66 @@
       },
       "typeName": "EngineVersion"
     },
+    "inventory.icon": {
+      "params": {
+        "additionalProperties": false,
+        "properties": { "programId": { "maxLength": 2048, "minLength": 1, "type": "string" } },
+        "required": ["programId"],
+        "type": "object"
+      },
+      "result": {
+        "oneOf": [
+          {
+            "additionalProperties": false,
+            "properties": {
+              "png": {
+                "description": "A base64 PNG of 64 by 64 pixels, encoded by the engine rather than copied from disk.",
+                "maxLength": 22024,
+                "minLength": 22024,
+                "pattern": "^[A-Za-z0-9+/]+={0,2}$",
+                "type": "string"
+              },
+              "status": { "const": "found", "type": "string" }
+            },
+            "required": ["status", "png"],
+            "type": "object"
+          },
+          {
+            "additionalProperties": false,
+            "properties": {
+              "reason": {
+                "oneOf": [
+                  {
+                    "const": "UNKNOWN_PROGRAM",
+                    "description": "Not an id this inventory produces, or the registration no longer exists.",
+                    "type": "string"
+                  },
+                  {
+                    "const": "NO_ICON",
+                    "description": "The registration has no usable `DisplayIcon` value.",
+                    "type": "string"
+                  },
+                  {
+                    "const": "UNSUPPORTED_LOCATION",
+                    "description": "`DisplayIcon` names something LEU does not open, such as a network path or a script.",
+                    "type": "string"
+                  },
+                  {
+                    "const": "READ_FAILED",
+                    "description": "The registry value or icon file could not be read.",
+                    "type": "string"
+                  }
+                ]
+              },
+              "status": { "const": "missing", "type": "string" }
+            },
+            "required": ["status", "reason"],
+            "type": "object"
+          }
+        ]
+      },
+      "typeName": "InventoryIcon"
+    },
     "inventory.list": {
       "params": { "additionalProperties": false, "type": "object" },
       "result": {

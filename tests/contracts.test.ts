@@ -123,3 +123,22 @@ test('validates inventory records, null metadata, partial issues, and closed rea
     false,
   );
 });
+
+test('accepts icon requests by program id only and engine-sized PNG results', () => {
+  const request = { ...fixture, method: 'inventory.icon', params: { programId: 'registry:x' } };
+  assert.equal(isEngineRequest(request), true);
+  for (const params of [{}, { programId: '' }, { programId: 'x', path: 'C:\\app.exe' }])
+    assert.equal(isEngineRequest({ ...request, params }), false, JSON.stringify(params));
+  const png = 'A'.repeat(22_024);
+  assert.equal(isEngineResult('inventory.icon', { status: 'found', png }), true);
+  for (const result of [
+    { status: 'found', png: png.slice(1) },
+    { status: 'found', png: `${png.slice(1)}"` },
+    { status: 'found', png, reason: 'NO_ICON' },
+    { status: 'missing', reason: 'NOT_A_REASON' },
+    { status: 'missing' },
+  ])
+    assert.equal(isEngineResult('inventory.icon', result), false, JSON.stringify(result));
+  for (const reason of ['UNKNOWN_PROGRAM', 'NO_ICON', 'UNSUPPORTED_LOCATION', 'READ_FAILED'])
+    assert.equal(isEngineResult('inventory.icon', { status: 'missing', reason }), true, reason);
+});

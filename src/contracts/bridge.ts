@@ -36,4 +36,6 @@ export interface LeuBridge {
   onEngineStatus(callback: (status: EngineStatus) => void): () => void;
   restartEngine(): Promise<EngineStatus>;
   listPrograms(): Promise<Inventory>;
+  /** A PNG data URL for a program in the latest live inventory, or null without one. */
+  getProgramIcon(programId: string): Promise<string | null>;
 }

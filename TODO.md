@@ -28,10 +28,11 @@ Open work from the October 2026 project review. Milestone scope and acceptance c
 - [x] Normalize nullable metadata, size estimates, reported dates, system-component flags, and update registrations; retain duplicate display names.
 - [x] Add loading, retry, partial warnings, bounded list pages, and selection-preserving refresh. Retain previous results after failed refreshes.
 - [x] Keep sample captures behind explicit `--demo-inventory`; add a separate live smoke test that saves no inventories or screenshots.
-- [ ] Load real application icons lazily; the current placeholders remain renderer-only.
+- [x] Load registered `DisplayIcon` icons lazily through `inventory.icon`. The engine re-reads the registration by program id, opens only local `.exe`, `.dll`, and `.ico` files on fixed drives, and returns a PNG it encodes itself; name-based placeholders remain for apps without one.
+- [ ] Fall back to the Windows Installer product icon (`ARPPRODUCTICON`) for MSI registrations without `DisplayIcon`. On the development machine on 2026-10-24, 43 of 68 listed apps had a registered icon.
 - [ ] Compare known installations across scopes and views in disposable Windows VMs before closing the M1 release gate.
 
-Local verification on 2026-10-23: source checks and live discovery through the development launcher pass. Registry source counts match an independent read-only .NET enumeration. Packaging succeeds, but Windows Code Integrity blocks the unsigned packaged `LEU.exe` on this machine (event 3077); packaged startup and smoke checks remain unverified for this change.
+Local verification on 2026-10-23: source checks and live discovery through the development launcher pass. Registry source counts match an independent read-only .NET enumeration. Packaging succeeds, but Windows Code Integrity blocks the unsigned packaged `LEU.exe` on this machine (event 3077); packaged startup and smoke checks remain unverified for this change. On 2026-10-24, `pnpm smoke:inventory -- --development` passed with icon requests for all 295 registrations (no read failures); packaged startup remains unverified for the same reason.
 
 ## Protocol review follow-ups
 

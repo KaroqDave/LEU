@@ -74,6 +74,7 @@ macro_rules! engine_methods {
 engine_methods! {
     "engine.version" => EngineVersion(EmptyParams) -> EngineVersionResult = engine_version;
     "inventory.list" => InventoryList(EmptyParams) -> inventory::InventoryResult = inventory::list;
+    "inventory.icon" => InventoryIcon(inventory::icon::IconParams) -> inventory::icon::IconResult = inventory::icon::icon;
 }
 
 #[derive(Deserialize)]

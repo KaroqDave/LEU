@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 use std::io;
 
+pub(super) mod icon;
 #[cfg(windows)]
 mod registry;
 
@@ -302,6 +303,18 @@ fn date(value: &str) -> Option<String> {
     Some(format!("{}-{}-{}", &value[..4], &value[4..6], &value[6..]))
 }
 
+/// The opaque program identity. `icon::parse_program_id` reverses it.
+pub(super) fn program_id(source: &RegistrySource) -> String {
+    // Keep the verbatim key: Unicode lowercasing can collapse distinct Windows key names.
+    // The reader enumerates each physical key once, so case folding is unnecessary.
+    format!(
+        "registry:{}:{}:{}",
+        source.hive.as_str(),
+        source.view.as_str(),
+        source.key
+    )
+}
+
 fn normalize(
     record: &RawRecord,
     source: RegistrySource,
@@ -335,14 +348,7 @@ fn normalize(
         parsed
     });
     Some(Program {
-        // Keep the verbatim key: Unicode lowercasing can collapse distinct Windows key names.
-        // The reader enumerates each physical key once, so case folding is unnecessary.
-        id: format!(
-            "registry:{}:{}:{}",
-            source.hive.as_str(),
-            source.view.as_str(),
-            source.key
-        ),
+        id: program_id(&source),
         name,
         publisher,
         version,

@@ -7,6 +7,7 @@ import { InstalledApps } from './views/InstalledApps';
 import { Activity } from './views/Activity';
 import { Settings } from './views/Settings';
 import { createInventoryState, inventoryReducer } from './inventory';
+import { retryMissingProgramIcons } from './program-icons';
 import { isListed } from './programs';
 
 type View = 'apps' | 'activity' | 'settings';
@@ -85,8 +86,10 @@ export function App() {
     dispatchInventory({ type: 'request' });
     try {
       const inventory = await window.leu.listPrograms();
-      if (request === inventoryRequest.current)
+      if (request === inventoryRequest.current) {
         dispatchInventory({ type: 'received', inventory, refreshed: true });
+        retryMissingProgramIcons();
+      }
     } catch {
       if (request === inventoryRequest.current) dispatchInventory({ type: 'failed' });
     }
