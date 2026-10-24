@@ -32,7 +32,7 @@ Open work from the October 2026 project review. Milestone scope and acceptance c
 - [x] Fall back to the Windows Installer product icon (`ARPPRODUCTICON`, read with `MsiGetProductInfoW`) for MSI registrations without `DisplayIcon`. Extensionless cached icons are accepted only in that product's `Installer\{ProductCode}` folder. On the development machine on 2026-10-24, listed apps with an icon went from 43 to 50 of 68; the rest register no icon.
 - [ ] Compare known installations across scopes and views in disposable Windows VMs before closing the M1 release gate.
 
-Local verification on 2026-10-23: source checks and live discovery through the development launcher pass. Registry source counts match an independent read-only .NET enumeration. Packaging succeeds, but Windows Code Integrity blocks the unsigned packaged `LEU.exe` on this machine (event 3077); packaged startup and smoke checks remain unverified for this change. On 2026-10-24, `pnpm smoke:inventory -- --development` passed with icon requests for all 295 registrations (no read failures); packaged startup remains unverified for the same reason.
+Local verification on 2026-10-23: source checks and live discovery through the development launcher pass. Registry source counts match an independent read-only .NET enumeration. Packaging succeeds, but Windows Code Integrity blocks the unsigned packaged `LEU.exe` on this machine (event 3077); packaged startup and smoke checks remain unverified for this change. On 2026-10-24, Code Integrity allowed a fresh packaged build: `pnpm smoke` and packaged `pnpm smoke:inventory` both passed, with icon requests for all 295 registrations and no read failures. The block is intermittent, so keep code signing on the release plan.
 
 ## Protocol review follow-ups
 

@@ -237,10 +237,14 @@ try {
   assert.deepEqual(await page.evaluate(() => Object.keys(window.leu).sort()), [
     'getAppInfo',
     'getEngineStatus',
+    'getProgramIcon',
     'listPrograms',
     'onEngineStatus',
     'restartEngine',
   ]);
+  // Sample records are not live registrations, so they keep their placeholders.
+  assert.equal(await page.evaluate(() => window.leu.getProgramIcon('demo-figma')), null);
+  assert.equal(await page.locator('.app-icon img').count(), 0);
   await verifyNetworkPolicy(page);
   await page.getByRole('button', { name: /Engine connected/ }).waitFor();
   await page.setViewportSize({ width: 1380, height: 1060 });
